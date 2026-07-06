@@ -1,0 +1,38 @@
+name: Build userscript
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'Xero_applications.html' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install puppeteer
+        run: npm i puppeteer@22
+
+      - name: Generate xero-bar.user.js
+        run: node build.js
+
+      - name: Commit result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add xero-bar.user.js
+          if git diff --staged --quiet; then
+            echo "No change to xero-bar.user.js"
+          else
+            git commit -m "Auto-build xero-bar.user.js [skip ci]"
+            git push
+          fi
