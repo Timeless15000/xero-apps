@@ -29,6 +29,14 @@ posY := 150
 g := ""
 checks := Map()
 
+; 첫 실행 시 바탕화면에 "XERO Bar" 아이콘 자동 생성 (다음부턴 그걸로 켜기)
+; auto-create a "XERO Bar" desktop icon on first run (use it to re-open later)
+try {
+    _lnk := A_Desktop "\XERO Bar.lnk"
+    if !FileExist(_lnk)
+        FileCreateShortcut(A_ScriptFullPath, _lnk, A_ScriptDir)
+}
+
 Build()
 
 Build() {
