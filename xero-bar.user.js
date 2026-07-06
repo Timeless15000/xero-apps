@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name XERO bar
 // @namespace xero-tools
-// @version 2026.07.06.0200
+// @version 2026.07.06.0458
 // @match https://go.xero.com/*
 // @grant none
 // @downloadURL https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.user.js
