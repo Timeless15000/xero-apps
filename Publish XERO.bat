@@ -21,9 +21,13 @@ echo ============================================
 echo   Publishing XERO apps to GitHub
 echo ============================================
 echo.
-REM OneDrive locks .git files, so disable Git's auto housekeeping (prevents the "Deletion failed (y/n)" hang)
+REM OneDrive locks .git files, so disable ALL of Git's auto housekeeping (prevents the "Deletion failed (y/n)" hang)
 "!GIT!" config gc.auto 0 >nul 2>nul
+"!GIT!" config gc.autoDetach false >nul 2>nul
+"!GIT!" config maintenance.auto false >nul 2>nul
+"!GIT!" config fetch.writeCommitGraph false >nul 2>nul
 "!GIT!" config core.fscache true >nul 2>nul
+if exist ".git\gc.log" del /f /q ".git\gc.log" >nul 2>nul
 echo [1/3] Saving your changes...
 "!GIT!" add -A
 "!GIT!" commit -m "update via Publish %DATE% %TIME%"
