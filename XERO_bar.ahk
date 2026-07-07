@@ -4,9 +4,10 @@
 ; ================= XERO Desktop Bar =================
 ; 버튼 = 크롬으로 단축키(F13~F20) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 선택은 저장돼 다음에도 유지.
+; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "06/07/26"                       ; 제목 표시 날짜
-ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 저장
+ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 
 tools := [
     {label:"Xero Reset",     c:"8B0000", key:"F13", id:"xeroreset"},
@@ -26,11 +27,21 @@ for t in tools
 editMode := false
 posX := 20
 posY := 150
+scale := IniRead(ini, "cfg", "scale", "1") + 0    ; 크기 배율 (1 = 100%)
+if (scale < 0.6)
+    scale := 0.6
+if (scale > 3)
+    scale := 3
+opacity := IniRead(ini, "cfg", "opacity", "100") + 0   ; 투명도 (100 = 불투명, 낮을수록 투명)
+if (opacity < 20)
+    opacity := 20
+if (opacity > 100)
+    opacity := 100
 g := ""
 checks := Map()
+items := []                             ; 컨트롤 + 기본(100%) 좌표 저장
 
 ; 첫 실행 시 바탕화면에 "XERO Bar" 아이콘 자동 생성 (다음부턴 그걸로 켜기)
-; auto-create a "XERO Bar" desktop icon on first run (use it to re-open later)
 try {
     _lnk := A_Desktop "\XERO Bar.lnk"
     if !FileExist(_lnk)
@@ -40,7 +51,7 @@ try {
 Build()
 
 Build() {
-    global g, tools, VER, enabled, editMode, posX, posY, checks
+    global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity
     if IsObject(g) {
         try {
             WinGetPos(&px, &py, , , "ahk_id " g.Hwnd)
@@ -52,31 +63,103 @@ Build() {
         g.Destroy()
     }
     checks := Map()
-    g := Gui("+AlwaysOnTop +ToolWindow -MinimizeBox", "XERO (" VER ")")
+    items := []
+    g := Gui("+AlwaysOnTop +Resize +ToolWindow -MaximizeBox -MinimizeBox", "XERO (" VER ")")
     g.BackColor := "1F2A38"
-    g.SetFont("s10 Bold", "Segoe UI")
     g.OnEvent("Close", (*) => ExitApp())
+    g.OnEvent("Size", GuiResize)
 
+    M := 8
+    gap := 6
+    CW := 180
+    y := M
+    sld := g.Add("Slider", "x" M " y" y " w" CW " h20 Range20-100 Line1 Page10 ToolTip")
+    sld.Value := opacity
+    sld.OnEvent("Change", (ctrl, *) => SetOpacity(ctrl.Value))
+    AddItem(sld, M, y, CW, 20)
+    y += 20 + gap
     if editMode {
-        sv := g.Add("Text", "w150 h24 Center 0x200 Background1E88E5 cWhite", "SAVE")
+        sv := g.Add("Text", "x" M " y" y " w144 h24 Center 0x200 Background1E88E5 cWhite", "SAVE")
         sv.OnEvent("Click", (*) => SaveEdit())
-        cx := g.Add("Text", "x+4 yp w26 h24 Center 0x200 BackgroundB71C1C cWhite", "X")
+        AddItem(sv, M, y, 144, 24)
+        cx := g.Add("Text", "x" (M + 144 + gap) " y" y " w" (CW - 144 - gap) " h24 Center 0x200 BackgroundB71C1C cWhite", "X")
         cx.OnEvent("Click", (*) => CancelEdit())
+        AddItem(cx, M + 144 + gap, y, CW - 144 - gap, 24)
+        y += 24 + gap
         for t in tools {
-            cb := g.Add("CheckBox", "xm y+8 w180 " (enabled[t.id] ? "Checked" : "") " cWhite", t.label)
+            cb := g.Add("CheckBox", "x" M " y" y " w" CW " h22 cWhite " (enabled[t.id] ? "Checked" : ""), t.label)
             checks[t.id] := cb
+            AddItem(cb, M, y, CW, 22)
+            y += 22 + gap
         }
     } else {
-        et := g.Add("Text", "w180 h24 Center 0x200 Background455A64 cWhite", "EDIT")
+        et := g.Add("Text", "x" M " y" y " w" CW " h24 Center 0x200 Background455A64 cWhite", "EDIT")
         et.OnEvent("Click", (*) => EnterEdit())
+        AddItem(et, M, y, CW, 24)
+        y += 24 + gap
         for t in tools {
             if !enabled[t.id]
                 continue
-            b := g.Add("Text", "w180 h32 Center 0x200 Background" t.c " cWhite", t.label)
+            b := g.Add("Text", "x" M " y" y " w" CW " h32 Center 0x200 Background" t.c " cWhite", t.label)
             b.OnEvent("Click", SendKey.Bind(t.key))
+            AddItem(b, M, y, CW, 32)
+            y += 32 + gap
         }
     }
-    g.Show("x" posX " y" posY " AutoSize")
+    baseW := M + CW + M
+    baseH := (y - gap) + M
+    g.Show("x" posX " y" posY " w" Round(baseW * scale) " h" Round(baseH * scale))
+    Relayout()
+    WinSetTransparent(Round(opacity * 2.55), "ahk_id " g.Hwnd)
+}
+
+AddItem(c, x, y, w, h) {
+    global items
+    items.Push({c: c, x: x, y: y, w: w, h: h})
+}
+
+Relayout() {
+    global items, scale
+    FS := Round(10 * scale)
+    if FS < 6
+        FS := 6
+    for it in items {
+        if (it.c.Type != "Slider")
+            it.c.SetFont("s" FS " Bold", "Segoe UI")
+        it.c.Move(Round(it.x * scale), Round(it.y * scale), Round(it.w * scale), Round(it.h * scale))
+    }
+}
+
+; 코너를 끌면 폭에 맞춰 바 전체를 확대/축소
+GuiResize(thisGui, minMax, w, h) {
+    global scale
+    if (minMax = -1)
+        return
+    ns := w / 196.0
+    if (ns < 0.6)
+        ns := 0.6
+    if (ns > 3)
+        ns := 3
+    scale := ns
+    Relayout()
+    SetTimer(SaveScale, -500)
+}
+
+SaveScale() {
+    global scale, ini
+    IniWrite(Round(scale, 3), ini, "cfg", "scale")
+}
+
+SetOpacity(v) {
+    global g, opacity
+    opacity := v
+    WinSetTransparent(Round(v * 2.55), "ahk_id " g.Hwnd)
+    SetTimer(SaveOpacity, -500)
+}
+
+SaveOpacity() {
+    global opacity, ini
+    IniWrite(opacity, ini, "cfg", "opacity")
 }
 
 EnterEdit() {
