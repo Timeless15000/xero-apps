@@ -108,6 +108,6 @@ SendKey(key, *) {
         if WinWaitActive(hwnd, , 1)
             Send("{" key "}")
     } else {
-        MsgBox("크롬(Chrome)에서 Xero 페이지를 먼저 열어주세요.", "XERO", 0x40)
+        MsgBox("Open a Xero page in Chrome first.", "XERO", 0x40)
     }
 }
