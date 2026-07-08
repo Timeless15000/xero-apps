@@ -6,13 +6,14 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 선택은 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "06/07/26"                       ; 제목 표시 날짜
+VER := "08/07/26"                       ; 제목 표시 날짜
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 
 tools := [
     {label:"Xero Reset",     c:"8B0000", key:"F13", id:"xeroreset"},
     {label:"Increase Apply", c:"1F4E78", key:"F14", id:"increaseapply"},
     {label:"Stripe Off",     c:"6C63FF", key:"F15", id:"stripeoff"},
+    {label:"Stripe Off+Save",c:"5E35B1", key:"F21", id:"stripeoffsave"},
     {label:"App4Sending",    c:"2E7D32", key:"F16", id:"app4sending"},
     {label:"Stripe+Sending", c:"00695C", key:"F17", id:"stripesending"},
     {label:"Xero 20",        c:"C8511B", key:"F18", id:"xero20"},
