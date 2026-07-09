@@ -6,8 +6,13 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 선택은 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "08/07/26"                       ; 제목 표시 날짜
+VER := "08/07/26"                       ; 제목 표시 날짜 (파일이 자동 업데이트되면 이 값도 같이 바뀜)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
+
+; ---- 자동 업데이트 ----
+UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/XERO_bar.ahk"
+; xero-apps(클론) 폴더에서 실행하면 '원본'이라 자동교체 끔 - 편집 중인 파일을 덮어쓰지 않도록.
+AUTO_UPDATE := !InStr(A_ScriptFullPath, "xero-apps")
 
 tools := [
     {label:"Xero Reset",     c:"8B0000", key:"F13", id:"xeroreset"},
@@ -49,7 +54,19 @@ try {
         FileCreateShortcut(A_ScriptFullPath, _lnk, A_ScriptDir)
 }
 
+; 다른 위치에서 돌던 예전 XERO 바가 있으면 닫기 (바 중복 방지)
+SetTitleMatchMode(2)
+try {
+    for _hw in WinGetList("XERO (")
+        try WinClose("ahk_id " _hw)
+}
+
 Build()
+
+if AUTO_UPDATE {
+    SetTimer(() => CheckUpdate(true), -3000)              ; 켠 뒤 3초 후 1회 확인
+    SetTimer(() => CheckUpdate(true), 2 * 60 * 60 * 1000) ; 이후 2시간마다 확인
+}
 
 Build() {
     global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity
@@ -194,4 +211,69 @@ SendKey(key, *) {
     } else {
         MsgBox("Open a Xero page in Chrome first.", "XERO", 0x40)
     }
+}
+
+; ================= 자동 업데이트 =================
+; 켤 때 + 2시간마다 GitHub에서 최신 바를 확인.
+; 새 버전이면 이 파일을 스스로 교체하고 리로드. .ini(설정)는 건드리지 않음.
+CheckUpdate(silent := true) {
+    global UPDATE_URL, ini
+    ; 리로드 직후 반복되는 것 방지: 직전 리로드 후 2분 이내면 건너뜀
+    last := IniRead(ini, "update", "lastreload", "")
+    if (last != "" && DateDiff(A_Now, last, "Seconds") < 120)
+        return
+    remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
+    ; 다운로드 검증 (네트워크 오류/404/반쪽짜리면 교체 안 함)
+    if (remote = "" || StrLen(remote) < 800 || !InStr(remote, "XERO Desktop Bar") || !InStr(remote, "#Requires AutoHotkey")) {
+        if !silent
+            Tip("업데이트 확인 실패 - 인터넷/GitHub 확인")
+        return
+    }
+    local := ""
+    try local := FileRead(A_ScriptFullPath, "UTF-8")
+    if (NormTxt(remote) == NormTxt(local)) {
+        if !silent
+            Tip("이미 최신이에요")
+        return
+    }
+    ; 새 버전 → 백업 후 교체 → 리로드
+    try FileCopy(A_ScriptFullPath, A_ScriptDir "\XERO_bar.bak.ahk", true)
+    try {
+        f := FileOpen(A_ScriptFullPath, "w", "UTF-8-RAW")
+        f.Write(remote)
+        f.Close()
+    } catch {
+        if !silent
+            Tip("업데이트 저장 실패")
+        return
+    }
+    IniWrite(A_Now, ini, "update", "lastreload")
+    Tip("XERO 바 업데이트됨 - 잠시만요...")
+    Sleep(800)
+    Reload()
+}
+
+HttpGet(url) {
+    try {
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.Open("GET", url, false)
+        whr.SetTimeouts(3000, 3000, 3000, 5000)
+        whr.SetRequestHeader("Cache-Control", "no-cache")
+        whr.SetRequestHeader("Pragma", "no-cache")
+        whr.Send()
+        if (whr.Status = 200)
+            return whr.ResponseText
+    }
+    return ""
+}
+
+NormTxt(s) {
+    s := StrReplace(s, Chr(0xFEFF), "")   ; BOM 제거
+    s := StrReplace(s, "`r", "")          ; CRLF → LF 통일
+    return Trim(s, " `t`n")
+}
+
+Tip(msg) {
+    ToolTip(msg)
+    SetTimer(() => ToolTip(), -2500)
 }
