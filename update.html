@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XERO 바 업데이트 (한 번만)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif;
+         background:#0f2233; color:#e8eef3; display:flex; justify-content:center;
+         min-height:100vh; padding:24px; }
+  .card { width:100%; max-width:480px; background:#16324a; border-radius:16px;
+          padding:28px 24px 32px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+  h1 { font-size:22px; margin:0 0 4px; text-align:center; }
+  .sub { text-align:center; color:#9db6cc; font-size:14px; margin-bottom:22px; }
+  .btn { display:block; width:100%; text-align:center; text-decoration:none;
+         font-size:18px; font-weight:700; padding:16px; border-radius:12px;
+         margin:12px 0; color:#fff; }
+  .btn-main { background:#2f7dd1; }
+  .btn-main:hover { background:#3b8ce4; }
+  .btn-tm { background:#3a5a72; font-size:15px; font-weight:600; padding:12px; }
+  .btn-tm:hover { background:#456780; }
+  ol { padding-left:20px; line-height:1.7; font-size:15px; color:#d3e0ec; }
+  ol li { margin-bottom:6px; }
+  .note { margin-top:20px; padding:14px 16px; background:#123; border-radius:10px;
+          font-size:14px; line-height:1.6; color:#bcd; border-left:4px solid #2f7dd1; }
+  .step-head { font-weight:700; margin:22px 0 6px; font-size:15px; color:#fff; }
+  .small { font-size:12.5px; color:#7f99ae; text-align:center; margin-top:18px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>XERO 바 업데이트</h1>
+    <div class="sub">딱 한 번만 하면 됩니다 · 이후 자동 최신</div>
+
+    <div class="step-head">1단계 — 탐퍼몽키(Tampermonkey)가 없다면 먼저 설치</div>
+    <a class="btn btn-tm" href="https://www.tampermonkey.net/" target="_blank" rel="noopener">
+      Tampermonkey 설치 페이지 열기
+    </a>
+
+    <div class="step-head">2단계 — 아래 버튼을 눌러 업데이트</div>
+    <a class="btn btn-main" href="https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.user.js">
+      ✅ XERO 바 업데이트 설치
+    </a>
+
+    <ol>
+      <li>버튼을 누르면 탐퍼몽키 설치 창이 열립니다.</li>
+      <li><b>설치(Install)</b> 또는 <b>재설치(Reinstall)</b> 버튼을 누르세요.</li>
+      <li>XERO 페이지로 가서 <b>새로고침(F5)</b> 하세요.</li>
+    </ol>
+
+    <div class="note">
+      이번 한 번만 설치하면 끝입니다.<br>
+      앞으로는 XERO 페이지를 열 때마다 <b>자동으로 최신 버전</b>이 적용됩니다 —
+      다시 설치하거나 기다릴 필요가 없습니다.
+    </div>
+
+    <div class="small">문제가 있으면 관리자에게 문의하세요.</div>
+  </div>
+</body>
+</html>

@@ -1,7 +1,8 @@
-// Auto-generates xero-bar.user.js from Xero_applications.html
+// Auto-generates xero-bar.code.js (the tool payload) from Xero_applications.html
 // Runs on GitHub Actions whenever Xero_applications.html is pushed.
 // It opens the HTML in headless Chrome (same as opening it yourself),
-// lets the page build the userscript, and saves the result.
+// lets the page build the userscript, strips the header, and saves the code.
+// The installed userscript (xero-bar.user.js) is a loader that fetches this file.
 
 const puppeteer = require('puppeteer');
 const path = require('path');
@@ -35,8 +36,11 @@ const fs = require('fs');
       process.exit(1);
     }
 
-    fs.writeFileSync(path.resolve(__dirname, 'xero-bar.user.js'), us, 'utf8');
-    console.log('OK: wrote xero-bar.user.js (' + us.length + ' chars).');
+    // Strip the ==UserScript== header. The loader (xero-bar.user.js) eval()s this
+    // file, so it must be plain code and must NOT be installable on its own.
+    const code = us.replace(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==\s*/, '');
+    fs.writeFileSync(path.resolve(__dirname, 'xero-bar.code.js'), code, 'utf8');
+    console.log('OK: wrote xero-bar.code.js (' + code.length + ' chars).');
   } finally {
     await browser.close();
   }

@@ -30,17 +30,17 @@ jobs:
       - name: Install puppeteer
         run: npm i puppeteer@22
 
-      - name: Generate xero-bar.user.js
+      - name: Generate xero-bar.code.js
         run: node build.js
 
       - name: Commit result
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add xero-bar.user.js
+          git add xero-bar.code.js
           if git diff --staged --quiet; then
-            echo "No change to xero-bar.user.js"
+            echo "No change to xero-bar.code.js"
           else
-            git commit -m "Auto-build xero-bar.user.js [skip ci]"
+            git commit -m "Auto-build xero-bar.code.js [skip ci]"
             git push
           fi
