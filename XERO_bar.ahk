@@ -229,9 +229,9 @@ CheckUpdate(silent := true) {
             Tip("업데이트 확인 실패 - 인터넷/GitHub 확인")
         return
     }
-    local := ""
-    try local := FileRead(A_ScriptFullPath, "UTF-8")
-    if (NormTxt(remote) == NormTxt(local)) {
+    cur := ""
+    try cur := FileRead(A_ScriptFullPath, "UTF-8")
+    if (NormTxt(remote) == NormTxt(cur)) {
         if !silent
             Tip("이미 최신이에요")
         return
