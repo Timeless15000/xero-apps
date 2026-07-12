@@ -3,10 +3,10 @@
 
 ; ================= XERO Desktop Bar =================
 ; 버튼 = 크롬으로 단축키(F13~F20) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
-; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 선택은 저장돼 다음에도 유지.
+; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "10/07/26"                       ; 제목 표시 날짜 (파일이 자동 업데이트되면 이 값도 같이 바뀜)
+VER := "13/07/26"                       ; 제목 표시 날짜 (파일이 자동 업데이트되면 이 값도 같이 바뀜)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 
 ; ---- 자동 업데이트 ----
@@ -30,6 +30,8 @@ enabled := Map()
 for t in tools
     enabled[t.id] := (IniRead(ini, "tools", t.id, "1") = "1")
 
+LoadOrder()                             ; 저장된 순서(있으면)대로 tools 재정렬
+
 editMode := false
 posX := 20
 posY := 150
@@ -46,6 +48,7 @@ if (opacity > 100)
 g := ""
 checks := Map()
 items := []                             ; 컨트롤 + 기본(100%) 좌표 저장
+dragRows := []                          ; 일반 모드 버튼 목록(드래그로 순서 변경)
 
 ; 첫 실행 시 바탕화면에 "XERO Bar" 아이콘 자동 생성 (다음부턴 그걸로 켜기)
 try {
@@ -69,7 +72,7 @@ if AUTO_UPDATE {
 }
 
 Build() {
-    global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity
+    global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows
     if IsObject(g) {
         try {
             WinGetPos(&px, &py, , , "ahk_id " g.Hwnd)
@@ -82,6 +85,7 @@ Build() {
     }
     checks := Map()
     items := []
+    dragRows := []
     g := Gui("+AlwaysOnTop +Resize +ToolWindow -MaximizeBox -MinimizeBox", "XERO (" VER ")")
     g.BackColor := "1F2A38"
     g.OnEvent("Close", (*) => ExitApp())
@@ -119,8 +123,9 @@ Build() {
             if !enabled[t.id]
                 continue
             b := g.Add("Text", "x" M " y" y " w" CW " h32 Center 0x200 Background" t.c " cWhite", t.label)
-            b.OnEvent("Click", SendKey.Bind(t.key))
+            b.OnEvent("Click", SendKey.Bind(t.key))   ; 드래그 훅 미작동 시 대비(클릭=실행)
             AddItem(b, M, y, CW, 32)
+            dragRows.Push({hwnd: b.Hwnd, id: t.id, key: t.key, label: t.label, baseY: y})
             y += 32 + gap
         }
     }
@@ -202,6 +207,122 @@ CancelEdit() {
     Build()
 }
 
+; ================= 드래그로 순서 변경 =================
+; 일반 화면에서 버튼을 위/아래로 끌어 순서 변경. 살짝(반 칸 미만) 누르면 그대로 실행.
+; 마우스가 버튼 위에 있을 때만 LButton 훅이 켜져 → 슬라이더·SAVE·EDIT 등은 정상 동작.
+IsOverToolButton() {
+    global g, dragRows
+    if !IsObject(g)
+        return false
+    if !dragRows.Length
+        return false
+    MouseGetPos(, , &win, &ch, 2)
+    if (win != g.Hwnd)
+        return false
+    for r in dragRows
+        if (r.hwnd = ch)
+            return true
+    return false
+}
+
+DragReorder() {
+    global g, tools, dragRows, scale
+    MouseGetPos(&sx, &sy, &win, &ch, 2)
+    if (win != g.Hwnd)
+        return
+    di := 0
+    for i, r in dragRows
+        if (r.hwnd = ch) {
+            di := i
+            break
+        }
+    if (di = 0)
+        return
+    n := dragRows.Length
+    pitch := (n >= 2) ? Abs(dragRows[2].baseY - dragRows[1].baseY) * scale : 38 * scale
+    if (pitch < 1)
+        pitch := 38 * scale
+    target := di
+    while GetKeyState("LButton", "P") {
+        MouseGetPos(, &my)
+        target := di + Round((my - sy) / pitch)
+        if (target < 1)
+            target := 1
+        if (target > n)
+            target := n
+        if (target != di)
+            ToolTip(dragRows[di].label "  ->  " target)
+        else
+            ToolTip()
+        Sleep(10)
+    }
+    ToolTip()
+    if (target = di) {                     ; 이동 없음 → 클릭(실행)으로 처리
+        SendKey(dragRows[di].key)
+        return
+    }
+    visIds := []                           ; 보이는(켜진) 버튼 순서
+    for r in dragRows
+        visIds.Push(r.id)
+    dragId := visIds[di]
+    visIds.RemoveAt(di)
+    visIds.InsertAt(target, dragId)
+    visSet := Map()                        ; 전체 tools 에 반영(숨긴 버튼 자리는 유지)
+    byId := Map()
+    for r in dragRows
+        visSet[r.id] := true
+    for t in tools
+        byId[t.id] := t
+    vi := 1
+    ordered := []
+    for t in tools {
+        if visSet.Has(t.id) {
+            ordered.Push(byId[visIds[vi]])
+            vi += 1
+        } else {
+            ordered.Push(t)
+        }
+    }
+    tools := ordered
+    SaveOrder()
+    Build()
+}
+
+; 저장된 순서(있으면)대로 tools 재정렬. 저장 순서에 없는(새로 추가된) 버튼은 뒤에 붙임.
+LoadOrder() {
+    global tools, ini
+    ord := IniRead(ini, "cfg", "order", "")
+    if (ord = "")
+        return
+    byId := Map()
+    for t in tools
+        byId[t.id] := t
+    ordered := []
+    seen := Map()
+    for id in StrSplit(ord, ",") {
+        id := Trim(id)
+        if (id != "" && byId.Has(id) && !seen.Has(id)) {
+            ordered.Push(byId[id])
+            seen[id] := true
+        }
+    }
+    for t in tools
+        if !seen.Has(t.id) {
+            ordered.Push(t)
+            seen[t.id] := true
+        }
+    tools := ordered
+}
+
+; 현재 tools 순서를 .ini 에 저장 (id 를 콤마로 연결)
+SaveOrder() {
+    global tools, ini
+    ids := ""
+    for t in tools
+        ids .= (ids = "" ? "" : ",") t.id
+    IniWrite(ids, ini, "cfg", "order")
+}
+
 SendKey(key, *) {
     hwnd := WinExist("ahk_exe chrome.exe")
     if hwnd {
@@ -277,3 +398,11 @@ Tip(msg) {
     ToolTip(msg)
     SetTimer(() => ToolTip(), -2500)
 }
+
+; ---- 일반 화면에서 버튼을 위/아래로 드래그해 순서 변경 ----
+; (마우스가 버튼 위에 있을 때만 켜짐 → 그 외 클릭은 평소대로 동작)
+#HotIf IsOverToolButton()
+LButton:: {
+    DragReorder()
+}
+#HotIf
