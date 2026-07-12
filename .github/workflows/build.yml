@@ -25,7 +25,7 @@ jobs:
           path: |
             ~/.cache/puppeteer
             node_modules
-          key: puppeteer22-${{ runner.os }}
+          key: puppeteer22-v3-${{ runner.os }}
 
       - name: Install puppeteer
         run: npm i puppeteer@22
