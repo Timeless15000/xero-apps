@@ -125,7 +125,7 @@ Build() {
             b := g.Add("Text", "x" M " y" y " w" CW " h32 Center 0x200 Background" t.c " cWhite", t.label)
             b.OnEvent("Click", SendKey.Bind(t.key))   ; 드래그 훅 미작동 시 대비(클릭=실행)
             AddItem(b, M, y, CW, 32)
-            dragRows.Push({hwnd: b.Hwnd, id: t.id, key: t.key, label: t.label, baseY: y})
+            dragRows.Push({hwnd: b.Hwnd, ctrl: b, id: t.id, key: t.key, label: t.label, baseY: y})
             y += 32 + gap
         }
     }
@@ -242,7 +242,14 @@ DragReorder() {
     pitch := (n >= 2) ? Abs(dragRows[2].baseY - dragRows[1].baseY) * scale : 38 * scale
     if (pitch < 1)
         pitch := 38 * scale
-    target := di
+    ; 드래그: 슬롯 단위로 자리 바꾸기 (겹침/잔상 없이 깔끔하게)
+    order := []                            ; 현재 표시 순서 (dragRows 엔트리 복사)
+    for r in dragRows
+        order.Push(r)
+    dragRows[di].ctrl.GetPos(&bx, &by0, &bw0, &bh0)   ; 버튼 x(열) - 세로만 바꿈
+    dragKey := dragRows[di].key
+    curIdx := di
+    moved := false
     while GetKeyState("LButton", "P") {
         MouseGetPos(, &my)
         target := di + Round((my - sy) / pitch)
@@ -250,23 +257,23 @@ DragReorder() {
             target := 1
         if (target > n)
             target := n
-        if (target != di)
-            ToolTip(dragRows[di].label "  ->  " target)
-        else
-            ToolTip()
+        if (target != curIdx) {            ; 슬롯이 바뀔 때만 전체 재배치 (깔끔)
+            moved := true
+            entry := order.RemoveAt(curIdx)
+            order.InsertAt(target, entry)
+            Loop n
+                order[A_Index].ctrl.Move(bx, Round(dragRows[A_Index].baseY * scale))
+            curIdx := target
+        }
         Sleep(10)
     }
-    ToolTip()
-    if (target = di) {                     ; 이동 없음 → 클릭(실행)으로 처리
-        SendKey(dragRows[di].key)
+    if (!moved) {                          ; 안 움직였으면 클릭(실행)
+        SendKey(dragKey)
         return
     }
-    visIds := []                           ; 보이는(켜진) 버튼 순서
-    for r in dragRows
-        visIds.Push(r.id)
-    dragId := visIds[di]
-    visIds.RemoveAt(di)
-    visIds.InsertAt(target, dragId)
+    visIds := []                           ; 최종 표시 순서
+    for e in order
+        visIds.Push(e.id)
     visSet := Map()                        ; 전체 tools 에 반영(숨긴 버튼 자리는 유지)
     byId := Map()
     for r in dragRows
