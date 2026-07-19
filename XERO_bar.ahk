@@ -6,7 +6,8 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "13/07/26"                       ; 제목 표시 날짜 (파일이 자동 업데이트되면 이 값도 같이 바뀜)
+VER := "15/07/26"                       ; 기본 날짜(오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
+PAGE_URL := "https://timeless15000.github.io/xero-apps/Xero_applications.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 
 ; ---- 자동 업데이트 ----
@@ -71,6 +72,10 @@ if AUTO_UPDATE {
     SetTimer(() => CheckUpdate(true), -3000)              ; 켠 뒤 3초 후 1회 확인
     SetTimer(() => CheckUpdate(true), 2 * 60 * 60 * 1000) ; 이후 2시간마다 확인
 }
+
+; 제목 날짜를 웹페이지와 똑같이 유지 (켠 직후 1회 + 2시간마다)
+SetTimer(() => RefreshVer(), -1500)
+SetTimer(() => RefreshVer(), 2 * 60 * 60 * 1000)
 
 Build() {
     global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows
@@ -405,6 +410,45 @@ NormTxt(s) {
 Tip(msg) {
     ToolTip(msg)
     SetTimer(() => ToolTip(), -2500)
+}
+
+; ================= 제목 날짜 = 웹페이지와 동일 =================
+; 웹페이지 상단 날짜 = GitHub Pages 배포시각(document.lastModified).
+; 바도 그 값(HTTP Last-Modified)을 읽어 로컬시간으로 바꿔 제목에 표시 → 항상 같은 날짜.
+RefreshVer() {
+    global VER, g, PAGE_URL
+    d := GetPageDate(PAGE_URL)
+    if (d != "" && d != VER) {
+        VER := d
+        if IsObject(g)
+            try g.Title := "XERO (" VER ")"
+    }
+}
+
+GetPageDate(url) {
+    lm := ""
+    try {
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.Open("GET", url "?v=" A_TickCount, false)
+        whr.SetTimeouts(3000, 3000, 3000, 5000)
+        whr.SetRequestHeader("Cache-Control", "no-cache")
+        whr.SetRequestHeader("Pragma", "no-cache")
+        whr.Send()
+        if (whr.Status = 200)
+            lm := whr.GetResponseHeader("Last-Modified")
+    }
+    if (lm = "")
+        return ""
+    ; 예: "Wed, 15 Jul 2026 08:28:33 GMT"
+    if !RegExMatch(lm, "i)(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})", &mm)
+        return ""
+    mon := Map("Jan","01","Feb","02","Mar","03","Apr","04","May","05","Jun","06","Jul","07","Aug","08","Sep","09","Oct","10","Nov","11","Dec","12")
+    if !mon.Has(mm[2])
+        return ""
+    gmt := mm[3] . mon[mm[2]] . Format("{:02}", mm[1]+0) . mm[4] . mm[5] . mm[6]   ; YYYYMMDDHHMISS (GMT)
+    off := DateDiff(A_Now, A_NowUTC, "Seconds")                                    ; 로컬-UTC 오프셋(초)
+    loc := DateAdd(gmt, off, "Seconds")                                            ; 로컬 시간으로 변환
+    return SubStr(loc, 7, 2) . "/" . SubStr(loc, 5, 2) . "/" . SubStr(loc, 3, 2)   ; DD/MM/YY
 }
 
 ; ---- 일반 화면에서 버튼을 위/아래로 드래그해 순서 변경 ----
