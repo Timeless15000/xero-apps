@@ -25,7 +25,8 @@ tools := [
     {label:"Xero 20",        c:"C8511B", key:"F18", id:"xero20"},
     {label:"Xero ALL 20",    c:"C8511B", key:"F19", id:"xeroall20"},
     {label:"XERO help",      c:"555555", key:"F20", id:"xerohelp"},
-    {label:"Price Check",    c:"0097A7", key:"F22", id:"pricecheck"}
+    {label:"Price Check",    c:"0097A7", key:"F22", id:"pricecheck"},
+    {label:"Auto Check",     c:"4A148C", key:"F23", id:"autocheck"}
 ]
 
 enabled := Map()
