@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 ; ================= XERO Desktop Bar =================
-; 버튼 = 크롬으로 단축키(F13~F22) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
+; 버튼 = 크롬으로 단축키(F13~F24) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
@@ -26,7 +26,8 @@ tools := [
     {label:"Xero ALL 20",    c:"C8511B", key:"F19", id:"xeroall20"},
     {label:"XERO help",      c:"555555", key:"F20", id:"xerohelp"},
     {label:"Price Check",    c:"0097A7", key:"F22", id:"pricecheck"},
-    {label:"Auto Check",     c:"4A148C", key:"F23", id:"autocheck"}
+    {label:"Auto Check ALL", c:"4A148C", key:"F23", id:"autocheck"},
+    {label:"Auto Check Approve", c:"7B1FA2", key:"F24", id:"autocheckappr"}
 ]
 
 enabled := Map()
