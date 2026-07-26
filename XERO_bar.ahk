@@ -6,9 +6,10 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "15/07/26"                       ; 기본 날짜(오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
+VER := "26/07/26"                       ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Xero_applications.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
+VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
 
 ; ---- 자동 업데이트 ----
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/XERO_bar.ahk"
@@ -377,8 +378,8 @@ CheckUpdate(silent := true) {
             Tip("이미 최신이에요")
         return
     }
-    ; 새 버전 → 백업 후 교체 → 리로드
-    try FileCopy(A_ScriptFullPath, A_ScriptDir "\XERO_bar.bak.ahk", true)
+    ; 새 버전 → 백업 후 교체 → 리로드 (백업은 임시 폴더로 - 바탕화면에 파일 안 생기게)
+    try FileCopy(A_ScriptFullPath, A_Temp "\XERO_bar.bak.ahk", true)
     try {
         f := FileOpen(A_ScriptFullPath, "w", "UTF-8-RAW")
         f.Write(remote)
@@ -423,10 +424,11 @@ Tip(msg) {
 ; 웹페이지 상단 날짜 = GitHub Pages 배포시각(document.lastModified).
 ; 바도 그 값(HTTP Last-Modified)을 읽어 로컬시간으로 바꿔 제목에 표시 → 항상 같은 날짜.
 RefreshVer() {
-    global VER, g, PAGE_URL
+    global VER, g, PAGE_URL, ini
     d := GetPageDate(PAGE_URL)
     if (d != "" && d != VER) {
         VER := d
+        try IniWrite(VER, ini, "cfg", "verdate")   ; 다음에 켤 때 이 날짜로 바로 표시
         if IsObject(g)
             try g.Title := "XERO (" VER ")"
     }
