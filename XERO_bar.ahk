@@ -29,7 +29,8 @@ tools := [
     {label:"Price Check",    c:"0097A7", key:"F22", id:"pricecheck"},
     {label:"Auto Check ALL", c:"4A148C", key:"F23", id:"autocheck"},
     {label:"Auto Check Approve", c:"7B1FA2", key:"F24", id:"autocheckappr"},
-    {label:"Auto Check Appr ALL", c:"9C27B0", key:"+F24", id:"autocheckapprall"}
+    {label:"Auto Check Appr ALL", c:"9C27B0", key:"+F24", id:"autocheckapprall"},
+    {label:"Pay Gap",         c:"B71C1C", key:"+F23", id:"paygap"}
 ]
 
 enabled := Map()
