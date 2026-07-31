@@ -269,7 +269,8 @@ var gv=function(i){return i==null?'':(tds[i].innerText||tds[i].textContent||'').
 var dk=mkey(gv(ix.dt));var to=gv(ix.to);
 if(dk==null||!to)return;
 var a=row.querySelector('a[href]');
-var n=gv(ix.no);var u=a?a.href:'';var av=amt(gv(ix.du));
+var u=a?a.href:'';if(/CreditNote/i.test(u))return;
+var n=gv(ix.no);var av=amt(gv(ix.du));
 its.push({c:to,d:dk,a:av,n:n,r:gv(ix.rf),dt:gv(ix.dt),u:u,k:n?n:(u+'|'+gv(ix.dt)+'|'+av)});
 });
 if(its.length)return its;
@@ -319,6 +320,49 @@ R.late.sort(function(a,b){return b.run-a.run||b.tot-a.tot;});
 R.old.sort(function(a,b){return a.mx-b.mx||b.tot-a.tot;});
 return R;
 };
+var uniq=function(a){var s={},o=[];for(var i=0;i<a.length;i++){if(!s[a[i]]){s[a[i]]=1;o.push(a[i]);}}return o;};
+var enrich=function(R,cb){cb();return; /* API disabled: contacts API unreliable from classic list */
+try{
+if(typeof fetch==='undefined'){cb();return;}
+var targets=R.gap.concat(R.late,R.old);
+if(!targets.length){cb();return;}
+var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0<ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&&oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
+var sc=null;try{var scm=document.documentElement.innerHTML.match(/shortcode["']?\s*[:=]\s*["']?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!=='!')sc='!'+sc;}}catch(_e){}
+if(!tok||!sc){cb();return;}
+var H={'Accept':'application/json','Authorization':'Bearer '+tok,'xero-tenant-shortcode':sc};
+var i=0;var LIM=Math.min(targets.length,60);
+var next=function(){
+if(i>=LIM){cb();return;}
+var o=targets[i];i++;
+widget('Payment Review - paid dates '+i+'/'+LIM+'...');
+fetch('/api/contacts/contacts?pageSize=5&search='+encodeURIComponent(o.c),{credentials:'include',headers:H})
+.then(function(r){return r.ok?r.json():null;})
+.then(function(j){
+var cs=(j&&j.contacts)||[];var cid=null;
+for(var x=0;x<cs.length;x++){if(String(cs[x].contactName||'').trim()===o.c){cid=cs[x].id;break;}}
+if(!cid&&cs.length===1)cid=cs[0].id;
+if(!cid)return null;
+return fetch('/api/contacts/contacts/'+cid+'/invoices?pageNumber=1&pageSize=100&searchTerm=&sortByDirection=DESC&sortByField=InvoiceDate&startDate=&endDate=&status=&searchDateBy=any&includeDeletedAndVoid=false',{credentials:'include',headers:H}).then(function(r2){return r2.ok?r2.json():null;});
+})
+.then(function(j2){
+try{
+var its=(j2&&j2.items)||[];o.pd={};
+for(var y=0;y<its.length;y++){var it=its[y];
+if(it.typeCode&&!/ACCREC$/i.test(String(it.typeCode)))continue;
+if(!it.paidDate)continue;
+var m=String(it.issueDate||'').match(/^(\d{4})-(\d{2})/);if(!m)continue;
+var k=parseInt(m[1],10)*12+(parseInt(m[2],10)-1);
+var pm=String(it.paidDate).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!pm)continue;
+(o.pd[k]=o.pd[k]||[]).push(pm[3]+'/'+pm[2]+'/'+pm[1]);
+}
+}catch(_e){}
+setTimeout(next,150);
+})
+['catch'](function(){setTimeout(next,150);});
+};
+next();
+}catch(_e){cb();}
+};
 var report=function(st,R,stopped){try{
 var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Review</title><style>'
 +'body{font:13px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;color:#222;margin:0;background:#f2f4f5}'
@@ -361,7 +405,10 @@ for(var k=o.mn;k<=o.mx;k++){
 if(byM[k]){byM[k].sort(function(a,b){return (a.n||'')<(b.n||'')?-1:1;}).forEach(function(it){
 out+='<tr><td>'+mtxt(k)+'</td><td>'+(it.n?(it.u?'<a href="'+esc(it.u)+'" target="_blank">'+esc(it.n)+'</a>':esc(it.n)):'')+'</td><td>'+esc(it.r)+'</td><td>'+esc(it.dt)+'</td><td class="amt">'+fmt(it.a)+'</td></tr>';});}
 else{var k2=k;while(k2+1<=o.mx&&!byM[k2+1])k2++;
-out+='<tr class="gapr"><td colspan="5">'+(k2>k?(mtxt(k)+' - '+mtxt(k2)):mtxt(k))+' · paid (not in the awaiting list)</td></tr>';
+var anyD=false;if(o.pd){for(var kk=k;kk<=k2;kk++){if(o.pd[kk]&&o.pd[kk].length){anyD=true;break;}}}
+if(anyD){for(var kk2=k;kk2<=k2;kk2++){var ds=(o.pd&&o.pd[kk2]&&o.pd[kk2].length)?uniq(o.pd[kk2]).join(', '):null;
+out+='<tr class="gapr"><td colspan="5">'+mtxt(kk2)+' · Paid'+(ds?' '+ds:'')+'</td></tr>';}}
+else{out+='<tr class="gapr"><td colspan="5">'+(k2>k?(mtxt(k)+' - '+mtxt(k2)):mtxt(k))+' · Paid</td></tr>';}
 k=k2;}}
 return out;};
 var section=function(list,cls,title,sub,tagf){
@@ -380,11 +427,16 @@ dl(new Blob([h],{type:'text/html'}),'Payment_Review_'+ts()+'.html');
 try{var _bu=URL.createObjectURL(new Blob([h],{type:'text/html'}));window.open(_bu,'_blank');setTimeout(function(){try{URL.revokeObjectURL(_bu);}catch(_e){}},60000);}catch(_e){}
 }catch(_e){}};
 var finish=function(st,stopped){
-if(!st.rows.length){stopAll();alert('No unpaid invoices found.\nOpen Sales > Invoices > Awaiting Payment first.');return;}
+if(window.__xpayFin)return;window.__xpayFin=1;
+if(!st.rows.length){window.__xpayFin=0;stopAll();alert('No unpaid invoices found.\nOpen Sales > Invoices > Awaiting Payment first.');return;}
 var R=analyze(st);
+widget('Payment Review - looking up paid dates...');
+enrich(R,function(){
 report(st,R,stopped);
 stopAll();
 alert('Payment Review done'+(stopped?' (stopped)':'')+': '+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers\n- Skipped payments: '+R.gap.length+'\n- 3+ months behind: '+R.late.length+'\n- Old unpaid: '+R.old.length+'\nThe HTML report is in your Downloads and opened in a new tab.');
+window.__xpayFin=0;
+});
 };
 var colGo=function(st,its){
 if(localStorage.getItem(LSR)!=='1'){window.__xpayBusy=0;return;}

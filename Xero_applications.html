@@ -274,7 +274,8 @@ var gv=function(i){return i==null?&#x27;&#x27;:(tds[i].innerText||tds[i].textCon
 var dk=mkey(gv(ix.dt));var to=gv(ix.to);
 if(dk==null||!to)return;
 var a=row.querySelector(&#x27;a[href]&#x27;);
-var n=gv(ix.no);var u=a?a.href:&#x27;&#x27;;var av=amt(gv(ix.du));
+var u=a?a.href:&#x27;&#x27;;if(/CreditNote/i.test(u))return;
+var n=gv(ix.no);var av=amt(gv(ix.du));
 its.push({c:to,d:dk,a:av,n:n,r:gv(ix.rf),dt:gv(ix.dt),u:u,k:n?n:(u+&#x27;|&#x27;+gv(ix.dt)+&#x27;|&#x27;+av)});
 });
 if(its.length)return its;
@@ -324,6 +325,49 @@ R.late.sort(function(a,b){return b.run-a.run||b.tot-a.tot;});
 R.old.sort(function(a,b){return a.mx-b.mx||b.tot-a.tot;});
 return R;
 };
+var uniq=function(a){var s={},o=[];for(var i=0;i&lt;a.length;i++){if(!s[a[i]]){s[a[i]]=1;o.push(a[i]);}}return o;};
+var enrich=function(R,cb){cb();return; /* API disabled: contacts API unreliable from classic list */
+try{
+if(typeof fetch===&#x27;undefined&#x27;){cb();return;}
+var targets=R.gap.concat(R.late,R.old);
+if(!targets.length){cb();return;}
+var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0&lt;ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&amp;&amp;oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
+var sc=null;try{var scm=document.documentElement.innerHTML.match(/shortcode[&quot;&#x27;]?\s*[:=]\s*[&quot;&#x27;]?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!==&#x27;!&#x27;)sc=&#x27;!&#x27;+sc;}}catch(_e){}
+if(!tok||!sc){cb();return;}
+var H={&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc};
+var i=0;var LIM=Math.min(targets.length,60);
+var next=function(){
+if(i&gt;=LIM){cb();return;}
+var o=targets[i];i++;
+widget(&#x27;Payment Review - paid dates &#x27;+i+&#x27;/&#x27;+LIM+&#x27;...&#x27;);
+fetch(&#x27;/api/contacts/contacts?pageSize=5&amp;search=&#x27;+encodeURIComponent(o.c),{credentials:&#x27;include&#x27;,headers:H})
+.then(function(r){return r.ok?r.json():null;})
+.then(function(j){
+var cs=(j&amp;&amp;j.contacts)||[];var cid=null;
+for(var x=0;x&lt;cs.length;x++){if(String(cs[x].contactName||&#x27;&#x27;).trim()===o.c){cid=cs[x].id;break;}}
+if(!cid&amp;&amp;cs.length===1)cid=cs[0].id;
+if(!cid)return null;
+return fetch(&#x27;/api/contacts/contacts/&#x27;+cid+&#x27;/invoices?pageNumber=1&amp;pageSize=100&amp;searchTerm=&amp;sortByDirection=DESC&amp;sortByField=InvoiceDate&amp;startDate=&amp;endDate=&amp;status=&amp;searchDateBy=any&amp;includeDeletedAndVoid=false&#x27;,{credentials:&#x27;include&#x27;,headers:H}).then(function(r2){return r2.ok?r2.json():null;});
+})
+.then(function(j2){
+try{
+var its=(j2&amp;&amp;j2.items)||[];o.pd={};
+for(var y=0;y&lt;its.length;y++){var it=its[y];
+if(it.typeCode&amp;&amp;!/ACCREC$/i.test(String(it.typeCode)))continue;
+if(!it.paidDate)continue;
+var m=String(it.issueDate||&#x27;&#x27;).match(/^(\d{4})-(\d{2})/);if(!m)continue;
+var k=parseInt(m[1],10)*12+(parseInt(m[2],10)-1);
+var pm=String(it.paidDate).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!pm)continue;
+(o.pd[k]=o.pd[k]||[]).push(pm[3]+&#x27;/&#x27;+pm[2]+&#x27;/&#x27;+pm[1]);
+}
+}catch(_e){}
+setTimeout(next,150);
+})
+[&#x27;catch&#x27;](function(){setTimeout(next,150);});
+};
+next();
+}catch(_e){cb();}
+};
 var report=function(st,R,stopped){try{
 var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Payment Review&lt;/title&gt;&lt;style&gt;&#x27;
 +&#x27;body{font:13px/1.5 &quot;Helvetica Neue&quot;,Helvetica,Arial,sans-serif;color:#222;margin:0;background:#f2f4f5}&#x27;
@@ -366,7 +410,10 @@ for(var k=o.mn;k&lt;=o.mx;k++){
 if(byM[k]){byM[k].sort(function(a,b){return (a.n||&#x27;&#x27;)&lt;(b.n||&#x27;&#x27;)?-1:1;}).forEach(function(it){
 out+=&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+mtxt(k)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+(it.n?(it.u?&#x27;&lt;a href=&quot;&#x27;+esc(it.u)+&#x27;&quot; target=&quot;_blank&quot;&gt;&#x27;+esc(it.n)+&#x27;&lt;/a&gt;&#x27;:esc(it.n)):&#x27;&#x27;)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+esc(it.r)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+esc(it.dt)+&#x27;&lt;/td&gt;&lt;td class=&quot;amt&quot;&gt;&#x27;+fmt(it.a)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;;});}
 else{var k2=k;while(k2+1&lt;=o.mx&amp;&amp;!byM[k2+1])k2++;
-out+=&#x27;&lt;tr class=&quot;gapr&quot;&gt;&lt;td colspan=&quot;5&quot;&gt;&#x27;+(k2&gt;k?(mtxt(k)+&#x27; - &#x27;+mtxt(k2)):mtxt(k))+&#x27; · paid (not in the awaiting list)&lt;/td&gt;&lt;/tr&gt;&#x27;;
+var anyD=false;if(o.pd){for(var kk=k;kk&lt;=k2;kk++){if(o.pd[kk]&amp;&amp;o.pd[kk].length){anyD=true;break;}}}
+if(anyD){for(var kk2=k;kk2&lt;=k2;kk2++){var ds=(o.pd&amp;&amp;o.pd[kk2]&amp;&amp;o.pd[kk2].length)?uniq(o.pd[kk2]).join(&#x27;, &#x27;):null;
+out+=&#x27;&lt;tr class=&quot;gapr&quot;&gt;&lt;td colspan=&quot;5&quot;&gt;&#x27;+mtxt(kk2)+&#x27; · Paid&#x27;+(ds?&#x27; &#x27;+ds:&#x27;&#x27;)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;;}}
+else{out+=&#x27;&lt;tr class=&quot;gapr&quot;&gt;&lt;td colspan=&quot;5&quot;&gt;&#x27;+(k2&gt;k?(mtxt(k)+&#x27; - &#x27;+mtxt(k2)):mtxt(k))+&#x27; · Paid&lt;/td&gt;&lt;/tr&gt;&#x27;;}
 k=k2;}}
 return out;};
 var section=function(list,cls,title,sub,tagf){
@@ -385,11 +432,16 @@ dl(new Blob([h],{type:&#x27;text/html&#x27;}),&#x27;Payment_Review_&#x27;+ts()+&
 try{var _bu=URL.createObjectURL(new Blob([h],{type:&#x27;text/html&#x27;}));window.open(_bu,&#x27;_blank&#x27;);setTimeout(function(){try{URL.revokeObjectURL(_bu);}catch(_e){}},60000);}catch(_e){}
 }catch(_e){}};
 var finish=function(st,stopped){
-if(!st.rows.length){stopAll();alert(&#x27;No unpaid invoices found.\nOpen Sales &gt; Invoices &gt; Awaiting Payment first.&#x27;);return;}
+if(window.__xpayFin)return;window.__xpayFin=1;
+if(!st.rows.length){window.__xpayFin=0;stopAll();alert(&#x27;No unpaid invoices found.\nOpen Sales &gt; Invoices &gt; Awaiting Payment first.&#x27;);return;}
 var R=analyze(st);
+widget(&#x27;Payment Review - looking up paid dates...&#x27;);
+enrich(R,function(){
 report(st,R,stopped);
 stopAll();
 alert(&#x27;Payment Review done&#x27;+(stopped?&#x27; (stopped)&#x27;:&#x27;&#x27;)+&#x27;: &#x27;+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers\n- Skipped payments: &#x27;+R.gap.length+&#x27;\n- 3+ months behind: &#x27;+R.late.length+&#x27;\n- Old unpaid: &#x27;+R.old.length+&#x27;\nThe HTML report is in your Downloads and opened in a new tab.&#x27;);
+window.__xpayFin=0;
+});
 };
 var colGo=function(st,its){
 if(localStorage.getItem(LSR)!==&#x27;1&#x27;){window.__xpayBusy=0;return;}
@@ -454,6 +506,8 @@ colGo(stC,items);
 - [!] 3+ consecutive months behind
 - [?] Old unpaid: no newer invoice after the last unpaid month - check if the service ended or it was paid since
 - Customers with only the last 1-2 months unpaid = OK (counted, but not listed in the report)
+- Paid months in between show as "Paid" (click the invoices to see the exact paid date)
+- Credit notes in the list are ignored
 - Output: Xero-style HTML report, downloaded + opened in a new tab (per customer: unpaid months, invoices, amounts, links)
 
 # Xero Reset - 서비스 날짜 자동 갱신 [v5]
