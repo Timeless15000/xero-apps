@@ -331,31 +331,47 @@ try{
 if(typeof fetch===&#x27;undefined&#x27;){cb();return;}
 var targets=R.gap.concat(R.late,R.old);
 if(!targets.length){cb();return;}
-var sc=null;try{var scm=document.documentElement.innerHTML.match(/shortcode[&quot;&#x27;]?\s*[:=]\s*[&quot;&#x27;]?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!==&#x27;!&#x27;)sc=&#x27;!&#x27;+sc;}}catch(_e){}
 var GX=&#x27;[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}&#x27;;
+var sc=null;
+try{var m0=location.pathname.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(m0)sc=m0[1];}catch(_e){}
+if(!sc){try{var scm=document.documentElement.innerHTML.match(/shortcode[&quot;&#x27;]?\s*[:=]\s*[&quot;&#x27;]?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!==&#x27;!&#x27;)sc=&#x27;!&#x27;+sc;}}catch(_e){}}
+var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0&lt;ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&amp;&amp;oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
+var mkcu=function(o,g){o.cu=sc?(location.origin+&#x27;/app/&#x27;+sc+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;):(location.origin+&#x27;/Contacts/View/&#x27;+g);};
 var i=0;var LIM=Math.min(targets.length,80);
 var next=function(){
 if(i&gt;=LIM){cb();return;}
 var o=targets[i];i++;
 widget(&#x27;Payment Review - contact links &#x27;+i+&#x27;/&#x27;+LIM+&#x27;...&#x27;);
 var fu=(o.arr.filter(function(x){return x.u;})[0]||{}).u;
-if(!fu){setTimeout(next,60);return;}
-fetch(fu,{credentials:&#x27;include&#x27;})
-.then(function(r){return r.ok?r.text():&#x27;&#x27;;})
-.then(function(html){
-try{
-var g=null,ap=null;
-var m1=html.match(new RegExp(&#x27;/app/(![A-Za-z0-9]{3,10})/contacts/contact/(&#x27;+GX+&#x27;)&#x27;));
-if(m1){ap=m1[1];g=m1[2];}
-if(!g){var m2=html.match(new RegExp(&#x27;contactID=(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;Contacts/View/(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;contact[^0-9a-fA-F]{0,24}(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;));if(m2)g=m2[1];}
-if(g){
-var s2=ap||sc;
-o.cu=s2?(location.origin+&#x27;/app/&#x27;+s2+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;):(location.origin+&#x27;/Contacts/View/&#x27;+g);
-}
-}catch(_e){}
+var stepB=function(){
+if(!tok||!sc){setTimeout(next,60);return;}
+fetch(&#x27;/api/contacts/contacts?pageSize=5&amp;search=&#x27;+encodeURIComponent(o.c),{credentials:&#x27;include&#x27;,headers:{&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc}})
+.then(function(r){return r.ok?r.json():null;})
+.then(function(j){
+var cs=(j&amp;&amp;j.contacts)||[];var cid=null;
+for(var x=0;x&lt;cs.length;x++){if(String(cs[x].contactName||&#x27;&#x27;).trim()===o.c){cid=cs[x].id;break;}}
+if(!cid&amp;&amp;cs.length===1)cid=cs[0].id;
+if(cid)mkcu(o,cid);
 setTimeout(next,120);
 })
 [&#x27;catch&#x27;](function(){setTimeout(next,120);});
+};
+if(!fu){stepB();return;}
+fetch(fu,{credentials:&#x27;include&#x27;})
+.then(function(r){
+try{if(!sc&amp;&amp;r.url){var mu=r.url.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(mu)sc=mu[1];}}catch(_e){}
+return r.ok?r.text():&#x27;&#x27;;
+})
+.then(function(html){
+var g=null;
+try{
+var m1=html.match(new RegExp(&#x27;/app/(![A-Za-z0-9]{3,10})/contacts/contact/(&#x27;+GX+&#x27;)&#x27;));
+if(m1){if(!sc)sc=m1[1];g=m1[2];}
+if(!g){var m2=html.match(new RegExp(&#x27;contactID=(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;Contacts/View/(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;contact[^0-9a-fA-F]{0,24}(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;));if(m2)g=m2[1];}
+}catch(_e){}
+if(g){mkcu(o,g);setTimeout(next,120);}else{stepB();}
+})
+[&#x27;catch&#x27;](function(){stepB();});
 };
 next();
 }catch(_e){cb();}
@@ -433,6 +449,9 @@ h+=&#x27;&lt;script&gt;&#x27;
 +&#x27;function xpdfSel(v){xpdfAll().forEach(function(c){c.checked=!!v;});xpdfCnt();}&#x27;
 +&#x27;function xpdfCnt(){var n=xpdfAll().filter(function(c){return c.checked;}).length;var e=document.getElementById(&quot;xpdfn&quot;);if(e)e.textContent=n;return n;}&#x27;
 +&#x27;document.addEventListener(&quot;change&quot;,function(e){if(e.target&amp;&amp;/pdfck/.test(e.target.className||&quot;&quot;))xpdfCnt();});&#x27;
++&#x27;var xpdfLast=null;&#x27;
++&#x27;document.addEventListener(&quot;click&quot;,function(e){var t=e.target;if(!t||!/pdfck/.test(t.className||&quot;&quot;))return;var all=xpdfAll();var idx=all.indexOf(t);if(e.shiftKey&amp;&amp;xpdfLast!==null&amp;&amp;xpdfLast&gt;=0&amp;&amp;idx&gt;=0){var a=Math.min(xpdfLast,idx),b=Math.max(xpdfLast,idx);for(var i=a;i&lt;=b;i++)all[i].checked=t.checked;}xpdfLast=idx;xpdfCnt();});&#x27;
++&#x27;document.addEventListener(&quot;mousedown&quot;,function(e){if(e.shiftKey&amp;&amp;e.target&amp;&amp;/pdfck/.test(e.target.className||&quot;&quot;))e.preventDefault();});&#x27;
 +&#x27;function xpdfMsg(t){var e=document.getElementById(&quot;xpdfmsg&quot;);if(e)e.textContent=t;}&#x27;
 +&#x27;var xpdfBusy=0;&#x27;
 +&#x27;function xpdfGo(){&#x27;
