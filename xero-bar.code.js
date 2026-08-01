@@ -326,31 +326,47 @@ try{
 if(typeof fetch==='undefined'){cb();return;}
 var targets=R.gap.concat(R.late,R.old);
 if(!targets.length){cb();return;}
-var sc=null;try{var scm=document.documentElement.innerHTML.match(/shortcode["']?\s*[:=]\s*["']?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!=='!')sc='!'+sc;}}catch(_e){}
 var GX='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+var sc=null;
+try{var m0=location.pathname.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(m0)sc=m0[1];}catch(_e){}
+if(!sc){try{var scm=document.documentElement.innerHTML.match(/shortcode["']?\s*[:=]\s*["']?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!=='!')sc='!'+sc;}}catch(_e){}}
+var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0<ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&&oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
+var mkcu=function(o,g){o.cu=sc?(location.origin+'/app/'+sc+'/contacts/contact/'+g+'/activity/invoices'):(location.origin+'/Contacts/View/'+g);};
 var i=0;var LIM=Math.min(targets.length,80);
 var next=function(){
 if(i>=LIM){cb();return;}
 var o=targets[i];i++;
 widget('Payment Review - contact links '+i+'/'+LIM+'...');
 var fu=(o.arr.filter(function(x){return x.u;})[0]||{}).u;
-if(!fu){setTimeout(next,60);return;}
-fetch(fu,{credentials:'include'})
-.then(function(r){return r.ok?r.text():'';})
-.then(function(html){
-try{
-var g=null,ap=null;
-var m1=html.match(new RegExp('/app/(![A-Za-z0-9]{3,10})/contacts/contact/('+GX+')'));
-if(m1){ap=m1[1];g=m1[2];}
-if(!g){var m2=html.match(new RegExp('contactID=('+GX+')','i'))||html.match(new RegExp('Contacts/View/('+GX+')','i'))||html.match(new RegExp('contact[^0-9a-fA-F]{0,24}('+GX+')','i'));if(m2)g=m2[1];}
-if(g){
-var s2=ap||sc;
-o.cu=s2?(location.origin+'/app/'+s2+'/contacts/contact/'+g+'/activity/invoices'):(location.origin+'/Contacts/View/'+g);
-}
-}catch(_e){}
+var stepB=function(){
+if(!tok||!sc){setTimeout(next,60);return;}
+fetch('/api/contacts/contacts?pageSize=5&search='+encodeURIComponent(o.c),{credentials:'include',headers:{'Accept':'application/json','Authorization':'Bearer '+tok,'xero-tenant-shortcode':sc}})
+.then(function(r){return r.ok?r.json():null;})
+.then(function(j){
+var cs=(j&&j.contacts)||[];var cid=null;
+for(var x=0;x<cs.length;x++){if(String(cs[x].contactName||'').trim()===o.c){cid=cs[x].id;break;}}
+if(!cid&&cs.length===1)cid=cs[0].id;
+if(cid)mkcu(o,cid);
 setTimeout(next,120);
 })
 ['catch'](function(){setTimeout(next,120);});
+};
+if(!fu){stepB();return;}
+fetch(fu,{credentials:'include'})
+.then(function(r){
+try{if(!sc&&r.url){var mu=r.url.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(mu)sc=mu[1];}}catch(_e){}
+return r.ok?r.text():'';
+})
+.then(function(html){
+var g=null;
+try{
+var m1=html.match(new RegExp('/app/(![A-Za-z0-9]{3,10})/contacts/contact/('+GX+')'));
+if(m1){if(!sc)sc=m1[1];g=m1[2];}
+if(!g){var m2=html.match(new RegExp('contactID=('+GX+')','i'))||html.match(new RegExp('Contacts/View/('+GX+')','i'))||html.match(new RegExp('contact[^0-9a-fA-F]{0,24}('+GX+')','i'));if(m2)g=m2[1];}
+}catch(_e){}
+if(g){mkcu(o,g);setTimeout(next,120);}else{stepB();}
+})
+['catch'](function(){stepB();});
 };
 next();
 }catch(_e){cb();}
@@ -428,6 +444,9 @@ h+='<script>'
 +'function xpdfSel(v){xpdfAll().forEach(function(c){c.checked=!!v;});xpdfCnt();}'
 +'function xpdfCnt(){var n=xpdfAll().filter(function(c){return c.checked;}).length;var e=document.getElementById("xpdfn");if(e)e.textContent=n;return n;}'
 +'document.addEventListener("change",function(e){if(e.target&&/pdfck/.test(e.target.className||""))xpdfCnt();});'
++'var xpdfLast=null;'
++'document.addEventListener("click",function(e){var t=e.target;if(!t||!/pdfck/.test(t.className||""))return;var all=xpdfAll();var idx=all.indexOf(t);if(e.shiftKey&&xpdfLast!==null&&xpdfLast>=0&&idx>=0){var a=Math.min(xpdfLast,idx),b=Math.max(xpdfLast,idx);for(var i=a;i<=b;i++)all[i].checked=t.checked;}xpdfLast=idx;xpdfCnt();});'
++'document.addEventListener("mousedown",function(e){if(e.shiftKey&&e.target&&/pdfck/.test(e.target.className||""))e.preventDefault();});'
 +'function xpdfMsg(t){var e=document.getElementById("xpdfmsg");if(e)e.textContent=t;}'
 +'var xpdfBusy=0;'
 +'function xpdfGo(){'
