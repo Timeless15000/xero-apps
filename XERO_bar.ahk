@@ -31,7 +31,8 @@ tools := [
     {label:"Auto Check Approve", c:"7B1FA2", key:"F24", id:"autocheckappr"},
     {label:"Auto Check Appr ALL", c:"9C27B0", key:"+F24", id:"autocheckapprall"},
     {label:"Payment Review",  c:"B71C1C", key:"+F23", id:"paymentreview"},
-    {label:"PDF Each",        c:"0B6E4F", key:"+F22", id:"pdfeach"}
+    {label:"PDF Each",        c:"0B6E4F", key:"+F22", id:"pdfeach"},
+    {label:"Email to Me",     c:"AD1457", key:"+F21", id:"emailtome"}
 ]
 
 enabled := Map()
