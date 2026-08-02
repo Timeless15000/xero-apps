@@ -63,6 +63,8 @@ if exist "%NODEDIR%\node.exe" (
 )
 goto :nodefail
 :havenode
+rem  Make portable Node available to the bar later too (user PATH, one time)
+if exist "%NODEDIR%\node.exe" powershell -NoProfile -ExecutionPolicy Bypass -Command "$d='%NODEDIR%'; $p=[Environment]::GetEnvironmentVariable('Path','User'); if(-not $p){$p=''}; if($p -notlike ('*'+$d+'*')){[Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';')+';'+$d),'User')}"
 
 rem  ---- [2/4] npm install (first time only) ----
 if exist "%DESTDIR%\node_modules" goto :havedeps
@@ -83,6 +85,17 @@ call npm run login
 popd
 :havelogin
 
+rem  ---- AutoHotkey v2 (auto install if missing - no admin needed) ----
+call :findahk
+if defined AHKEXE goto :haveahk
+echo   Installing AutoHotkey... (one time, 1 min / 자동 설치 - 처음 한 번, 1분)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing 'https://www.autohotkey.com/download/ahk-v2.exe' -OutFile ($env:TEMP+'\ahk-v2-setup.exe'); exit 0 } catch { exit 1 }"
+if not exist "%TEMP%\ahk-v2-setup.exe" goto :ahkfail
+start /wait "" "%TEMP%\ahk-v2-setup.exe" /silent
+call :findahk
+if not defined AHKEXE goto :ahkfail
+:haveahk
+
 rem  ---- [4/4] download the latest bar (cache-busted) ----
 echo   [4/4] Getting the latest bar...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
@@ -97,9 +110,27 @@ ie4uinit.exe -show >nul 2>nul
 
 echo.
 echo   Done! Starting the bar... / 완료! 바를 켭니다...
-start "" "%DEST%"
+start "" "%AHKEXE%" "%DEST%"
 timeout /t 3 >nul
 exit /b 0
+
+:findahk
+set "AHKEXE="
+if exist "%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey64.exe" set "AHKEXE=%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey64.exe"
+if not defined AHKEXE if exist "%ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe" set "AHKEXE=%ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe"
+if not defined AHKEXE if exist "%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey32.exe" set "AHKEXE=%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey32.exe"
+if not defined AHKEXE if exist "%ProgramFiles%\AutoHotkey\v2\AutoHotkey32.exe" set "AHKEXE=%ProgramFiles%\AutoHotkey\v2\AutoHotkey32.exe"
+exit /b 0
+
+:ahkfail
+echo.
+echo   Could not install AutoHotkey automatically.
+echo   A download page will open - install v2, then run this file again.
+echo   AutoHotkey 자동 설치에 실패했어요. 열리는 페이지에서 v2 설치 후 다시 실행하세요.
+echo.
+start https://www.autohotkey.com
+pause
+exit /b 1
 
 :nofolder
 echo.
