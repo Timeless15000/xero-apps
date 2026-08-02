@@ -3,13 +3,12 @@
 
 ; ================= XERO Desktop Bar =================
 ; 버튼 = 크롬으로 단축키(F13~F24, Shift+F24) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
-; OUTLOOK 섹션(2026-08-02, 바 통합): Flagged Summary 는 단축키 대신 Outlook 저장소의 Node 명령을 직접 실행.
 ; 버튼 우클릭 = 그 버튼이 뭘 하는지 설명 (한/영). Right-click any button for what it does.
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 17                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v17 처럼 표시)
+APPVER := 18                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v18 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Xero_applications.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
@@ -40,11 +39,6 @@ tools := [
     {label:"Email to Me",     c:"AD1457", key:"+F21", id:"emailtome"}
 ]
 
-; ---- Outlook 섹션 버튼 (단축키가 아니라 Outlook 저장소의 Node 명령 실행) ----
-otools := [
-    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary"}
-]
-
 ; ---- 버튼 설명 (우클릭하면 표시) — [한국어, English] ----
 DESC := Map(
     "xeroreset",        ["서비스 날짜 태그를 다음 인보이스 달로 갱신하고, 점선 아래 지난 엑스트라를 정리합니다. 저장은 수동(Save).", "Rolls service date tags to the next invoice month and clears old extras below the divider. Save manually."],
@@ -62,20 +56,16 @@ DESC := Map(
     "autocheckapprall", ["Approve 검사를 모든 페이지에 실행 (현재→마지막 자동 이동).", "Runs the Approve check across ALL pages (auto-moves current → last)."],
     "paymentreview",    ["Awaiting Payment 전체 페이지를 스캔해, 납부가 중간에 끊겼거나 3개월+ 밀린 고객 리포트를 만듭니다.", "Scans the whole Awaiting Payment list and reports customers with skipped or 3+ months unpaid invoices."],
     "pdfeach",          ["목록에서 체크한 인보이스를 각각 별도 PDF로 다운로드합니다.", "Downloads each ticked invoice as its own separate PDF."],
-    "emailtome",        ["Send Invoices 창의 모든 수신자 이메일을 내 주소로 일괄 변경합니다.", "Replaces every recipient email in the Send Invoices window with your own."],
-    "flaggedsummary",   ["Outlook Inbox의 flag된 메일 전체를 AI 요약(EN+KO) HTML 리포트로 만들어 브라우저로 엽니다. (이 PC에 Outlook 폴더 + npm run login 설정 필요)", "Builds an AI-summary HTML report (EN+KO) of every flagged Inbox email and opens it in the browser. (Needs the Outlook folder + npm run login set up on this PC)"]
+    "emailtome",        ["Send Invoices 창의 모든 수신자 이메일을 내 주소로 일괄 변경합니다.", "Replaces every recipient email in the Send Invoices window with your own."]
 )
 
 enabled := Map()
 for t in tools
     enabled[t.id] := (IniRead(ini, "tools", t.id, "1") = "1")
-for t in otools
-    enabled[t.id] := (IniRead(ini, "tools", t.id, "1") = "1")
 
 LoadOrder()                             ; 저장된 순서(있으면)대로 tools 재정렬
 
 editMode := false
-busy := false                            ; Flagged Summary 중복 실행 방지
 posX := 20
 posY := 150
 scale := IniRead(ini, "cfg", "scale", "1") + 0    ; 크기 배율 (1 = 100%)
@@ -101,12 +91,11 @@ try {
         FileCreateShortcut(A_ScriptFullPath, _lnk, A_ScriptDir)
 }
 
-; 다른 위치에서 돌던 예전 XERO 바가 있으면 닫기 (바 중복 방지)
+; 다른 위치에서 돌던 예전 XERO 바가 있으면 닫기 (바 중복 방지) — OUTLOOK 바는 별개라 안 닫음
 SetTitleMatchMode(2)
 try {
-    for _pat in ["XERO (", "Outlook (", "OUTLOOK Bar"]
-        for _hw in WinGetList(_pat)
-            try WinClose("ahk_id " _hw)
+    for _hw in WinGetList("XERO (")
+        try WinClose("ahk_id " _hw)
 }
 
 Build()
@@ -121,7 +110,7 @@ SetTimer(() => RefreshVer(), -1500)
 SetTimer(() => RefreshVer(), 2 * 60 * 60 * 1000)
 
 Build() {
-    global g, tools, otools, VER, APPVER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows, helpFor
+    global g, tools, VER, APPVER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows, helpFor
     if IsObject(g) {
         try {
             WinGetPos(&px, &py, , , "ahk_id " g.Hwnd)
@@ -165,15 +154,6 @@ Build() {
             AddItem(cb, M, y, CW, 22)
             y += 22 + gap
         }
-        dv := g.Add("Text", "x" M " y" y " w" CW " h16 Center c9DB6CC Background1F2A38", "─── OUTLOOK ───")
-        AddItem(dv, M, y, CW, 16)
-        y += 16 + gap
-        for t in otools {
-            cb := g.Add("CheckBox", "x" M " y" y " w" CW " h22 cWhite " (enabled[t.id] ? "Checked" : ""), t.label)
-            checks[t.id] := cb
-            AddItem(cb, M, y, CW, 22)
-            y += 22 + gap
-        }
     } else {
         et := g.Add("Text", "x" M " y" y " w" CW " h24 Center 0x200 Background455A64 cWhite", "EDIT")
         et.OnEvent("Click", (*) => EnterEdit())
@@ -188,25 +168,6 @@ Build() {
             dragRows.Push({hwnd: b.Hwnd, ctrl: b, id: t.id, key: t.key, label: t.label, baseY: y})
             helpFor[b.Hwnd] := t.id
             y += 32 + gap
-        }
-        ; ---- Outlook 섹션 ----
-        oShow := false
-        for t in otools
-            if enabled[t.id]
-                oShow := true
-        if oShow {
-            dv := g.Add("Text", "x" M " y" y " w" CW " h16 Center c9DB6CC Background1F2A38", "─── OUTLOOK ───")
-            AddItem(dv, M, y, CW, 16)
-            y += 16 + gap
-            for t in otools {
-                if !enabled[t.id]
-                    continue
-                b := g.Add("Text", "x" M " y" y " w" CW " h32 Center 0x200 Background" t.c " cWhite", t.label)
-                b.OnEvent("Click", (*) => RunFlagged())
-                AddItem(b, M, y, CW, 32)
-                helpFor[b.Hwnd] := t.id
-                y += 32 + gap
-            }
         }
         ht := g.Add("Text", "x" M " y" y " w" CW " h15 Center c7F99AE Background1F2A38", "우클릭=설명 · R-click=info")
         AddItem(ht, M, y, CW, 15)
@@ -415,7 +376,7 @@ SaveOrder() {
 
 ; ================= 우클릭 = 버튼 설명 (한/영) =================
 CtxHelp(gobj, ctrl, item, isRight, x, y) {
-    global helpFor, DESC, tools, otools, g
+    global helpFor, DESC, tools, g
     if !IsObject(ctrl)
         return
     if !helpFor.Has(ctrl.Hwnd)
@@ -427,60 +388,8 @@ CtxHelp(gobj, ctrl, item, isRight, x, y) {
     for t in tools
         if (t.id = id)
             label := t.label
-    for t in otools
-        if (t.id = id)
-            label := t.label
     d := DESC[id]
     MsgBox(d[1] "`n`n" d[2], label, "Iconi Owner" g.Hwnd)
-}
-
-; ================= Outlook: Flagged Summary =================
-; Outlook 저장소 폴더에서 node src\index.js --flagged-summary 실행 (OUTLOOK 바에서 통합됨).
-FindOutlookDir() {
-    global ini
-    cands := []
-    saved := IniRead(ini, "outlook", "dir", "")
-    if (saved != "")
-        cands.Push(saved)
-    cands.Push(A_ScriptDir "\..\Outlook")
-    od := EnvGet("OneDrive")
-    if (od != "")
-        cands.Push(od "\Document\GitHub\Outlook", od "\Documents\GitHub\Outlook")
-    up := EnvGet("USERPROFILE")
-    cands.Push(A_MyDocuments "\GitHub\Outlook", up "\Document\GitHub\Outlook", up "\Documents\GitHub\Outlook", up "\GitHub\Outlook", up "\Outlook")
-    for d in cands
-        if (d != "" && FileExist(d "\src\index.js"))
-            return d
-    ; 못 찾으면 한 번만 물어보고 저장
-    sel := DirSelect("*" A_MyDocuments, 3, "Outlook 폴더를 선택하세요 (안에 src\index.js 가 있는 폴더)`nSelect the Outlook folder (contains src\index.js)")
-    if (sel != "" && FileExist(sel "\src\index.js")) {
-        IniWrite(sel, ini, "outlook", "dir")
-        return sel
-    }
-    return ""
-}
-
-RunFlagged(*) {
-    global busy, g
-    if busy {
-        Tip("이미 실행 중입니다 - 잠시만요...")
-        return
-    }
-    dir := FindOutlookDir()
-    if (dir = "") {
-        MsgBox("Outlook 폴더를 찾지 못했습니다.`nFlagged Summary 는 Outlook 저장소가 설정된 PC에서만 동작합니다 (관리자 문의).`n`nThe Outlook folder was not found on this PC - ask the admin to set it up.", "Flagged Summary", "Icon! Owner" g.Hwnd)
-        return
-    }
-    busy := true
-    Tip("Flagged Summary 생성 중... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
-    ec := RunWait(A_ComSpec ' /c node "src\index.js" --flagged-summary', dir, "Hide")
-    ToolTip()
-    busy := false
-    if (ec = 9009) {
-        MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "Flagged Summary", "Icon! Owner" g.Hwnd)
-    } else if (ec != 0) {
-        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐다면: Outlook 폴더에서 npm run login`n- 자세한 내용은 Outlook 폴더의 log.txt 를 확인하세요.", "Flagged Summary", "Icon! Owner" g.Hwnd)
-    }
 }
 
 SendKey(key, *) {
