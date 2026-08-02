@@ -21,10 +21,20 @@ for %%D in (
   "%USERPROFILE%\Outlook"
   "%USERPROFILE%\Desktop\Outlook"
   "%USERPROFILE%\Downloads\Outlook"
+  "%OneDrive%\Documents\Outlook"
+  "%OneDrive%\Document\Outlook"
+  "%OneDrive%\Desktop\Outlook"
+  "%OneDrive%\Outlook"
 ) do (
   if not defined DESTDIR if exist "%%~D\src\index.js" set "DESTDIR=%%~D"
 )
+rem  Also check the REAL Documents/Desktop folders (OneDrive-redirected PCs)
+if defined DESTDIR goto :havefolder
+for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('MyDocuments'); [Environment]::GetFolderPath('Desktop'); [Environment]::GetFolderPath('UserProfile')+'\Downloads'"`) do (
+  if not defined DESTDIR if exist "%%P\Outlook\src\index.js" set "DESTDIR=%%P\Outlook"
+)
 if not defined DESTDIR goto :nofolder
+:havefolder
 
 set "DEST=%DESTDIR%\OUTLOOK_bar.ahk"
 echo.
