@@ -1,5 +1,5 @@
-// Auto-generates xero-bar.code.js (the tool payload) from Xero_applications.html
-// Runs on GitHub Actions whenever Xero_applications.html is pushed.
+// Auto-generates xero-bar.code.js (the tool payload) from Timeless_App.html
+// Runs on GitHub Actions whenever Timeless_App.html is pushed.
 // It opens the HTML in headless Chrome (same as opening it yourself),
 // lets the page build the userscript, strips the header, and saves the code.
 // The installed userscript (xero-bar.user.js) is a loader that fetches this file.
@@ -9,9 +9,9 @@ const path = require('path');
 const fs = require('fs');
 
 (async () => {
-  const htmlPath = path.resolve(__dirname, 'Xero_applications.html');
+  const htmlPath = path.resolve(__dirname, 'Timeless_App.html');
   if (!fs.existsSync(htmlPath)) {
-    console.error('ERROR: Xero_applications.html not found in repo root.');
+    console.error('ERROR: Timeless_App.html not found in repo root.');
     process.exit(1);
   }
 
