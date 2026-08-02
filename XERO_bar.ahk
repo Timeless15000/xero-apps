@@ -6,10 +6,13 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
-VER := "26/07/26"                       ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
+VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
+APPVER := 16                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v16 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Xero_applications.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
+if (StrLen(VER) = 8)                     ; 옛 2자리 연도(dd/mm/yy) 저장값이면 4자리로 보정
+    VER := SubStr(VER, 1, 6) . "20" . SubStr(VER, 7, 2)
 
 ; ---- 자동 업데이트 ----
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/XERO_bar.ahk"
@@ -85,7 +88,7 @@ SetTimer(() => RefreshVer(), -1500)
 SetTimer(() => RefreshVer(), 2 * 60 * 60 * 1000)
 
 Build() {
-    global g, tools, VER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows
+    global g, tools, VER, APPVER, enabled, editMode, posX, posY, checks, scale, items, opacity, dragRows
     if IsObject(g) {
         try {
             WinGetPos(&px, &py, , , "ahk_id " g.Hwnd)
@@ -99,7 +102,7 @@ Build() {
     checks := Map()
     items := []
     dragRows := []
-    g := Gui("+AlwaysOnTop +Resize +ToolWindow -MaximizeBox -MinimizeBox", "XERO (" VER ")")
+    g := Gui("+AlwaysOnTop +Resize +ToolWindow -MaximizeBox -MinimizeBox", "XERO (" VER ") v" APPVER)
     g.BackColor := "1F2A38"
     g.OnEvent("Close", (*) => ExitApp())
     g.OnEvent("Size", GuiResize)
@@ -427,13 +430,13 @@ Tip(msg) {
 ; 웹페이지 상단 날짜 = GitHub Pages 배포시각(document.lastModified).
 ; 바도 그 값(HTTP Last-Modified)을 읽어 로컬시간으로 바꿔 제목에 표시 → 항상 같은 날짜.
 RefreshVer() {
-    global VER, g, PAGE_URL, ini
+    global VER, APPVER, g, PAGE_URL, ini
     d := GetPageDate(PAGE_URL)
     if (d != "" && d != VER) {
         VER := d
         try IniWrite(VER, ini, "cfg", "verdate")   ; 다음에 켤 때 이 날짜로 바로 표시
         if IsObject(g)
-            try g.Title := "XERO (" VER ")"
+            try g.Title := "XERO (" VER ") v" APPVER
     }
 }
 
@@ -460,7 +463,7 @@ GetPageDate(url) {
     gmt := mm[3] . mon[mm[2]] . Format("{:02}", mm[1]+0) . mm[4] . mm[5] . mm[6]   ; YYYYMMDDHHMISS (GMT)
     off := DateDiff(A_Now, A_NowUTC, "Seconds")                                    ; 로컬-UTC 오프셋(초)
     loc := DateAdd(gmt, off, "Seconds")                                            ; 로컬 시간으로 변환
-    return SubStr(loc, 7, 2) . "/" . SubStr(loc, 5, 2) . "/" . SubStr(loc, 3, 2)   ; DD/MM/YY
+    return SubStr(loc, 7, 2) . "/" . SubStr(loc, 5, 2) . "/" . SubStr(loc, 1, 4)   ; DD/MM/YYYY
 }
 
 ; ---- 일반 화면에서 버튼을 위/아래로 드래그해 순서 변경 ----
