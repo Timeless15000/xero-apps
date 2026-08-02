@@ -4,6 +4,8 @@ chcp 65001 >nul
 title OUTLOOK Bar - install / update
 
 set "URL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
+set "ICOURL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/outlook.ico"
+set "NODEDIR=%LOCALAPPDATA%\node-lts"
 
 rem  Find the Outlook folder (the one that contains src\index.js)
 set "DESTDIR="
@@ -30,23 +32,25 @@ echo   OUTLOOK Bar - install / update
 echo   Folder: %DESTDIR%
 echo.
 
-rem  ---- [1/4] Node.js ----
+rem  ---- [1/4] Node.js (fully automatic - no admin rights needed) ----
 where node >nul 2>nul
 if not errorlevel 1 goto :havenode
 if exist "%ProgramFiles%\nodejs\node.exe" (
   set "PATH=%ProgramFiles%\nodejs;%PATH%"
   goto :havenode
 )
-echo   [1/4] Installing Node.js... (one time - please wait / 처음 한 번 - 잠시만요)
-where winget >nul 2>nul
-if errorlevel 1 goto :nodefail
-winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
-if exist "%ProgramFiles%\nodejs\node.exe" (
-  set "PATH=%ProgramFiles%\nodejs;%PATH%"
+if exist "%NODEDIR%\node.exe" (
+  set "PATH=%NODEDIR%;%PATH%"
   goto :havenode
 )
-where node >nul 2>nul
-if not errorlevel 1 goto :havenode
+echo   [1/4] Installing Node.js automatically... (one time, 1-2 min / 자동 설치 - 처음 한 번, 1~2분)
+set "NARCH=win-x64"
+if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "NARCH=win-arm64"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $b='https://nodejs.org/dist/latest-v24.x/'; $s=(Invoke-WebRequest -UseBasicParsing ($b+'SHASUMS256.txt')).Content; $n=[regex]::Match($s,'node-v[0-9.]+-%NARCH%\.zip').Value; if(-not $n){exit 1}; $z=Join-Path $env:TEMP 'node-lts.zip'; Invoke-WebRequest -UseBasicParsing ($b+$n) -OutFile $z; $t=Join-Path $env:TEMP 'node-lts-unzip'; if(Test-Path $t){Remove-Item $t -Recurse -Force}; Expand-Archive -Path $z -DestinationPath $t -Force; $i=Get-ChildItem $t -Directory | Select-Object -First 1; $d='%NODEDIR%'; if(Test-Path $d){Remove-Item $d -Recurse -Force}; Move-Item $i.FullName $d; Remove-Item $z -Force; Remove-Item $t -Recurse -Force"
+if exist "%NODEDIR%\node.exe" (
+  set "PATH=%NODEDIR%;%PATH%"
+  goto :havenode
+)
 goto :nodefail
 :havenode
 
@@ -74,8 +78,12 @@ echo   [4/4] Getting the latest bar...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
 if errorlevel 1 goto :dlfail
 
-rem  Desktop shortcut
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\OUTLOOK Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; $l.Save()"
+rem  Outlook logo for the desktop shortcut (best effort)
+if not exist "%DESTDIR%\outlook.ico" powershell -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\outlook.ico' } catch {}"
+
+rem  Desktop shortcut (with Outlook icon when available)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\OUTLOOK Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; if(Test-Path '%DESTDIR%\outlook.ico'){$l.IconLocation='%DESTDIR%\outlook.ico,0'}; $l.Save()"
+ie4uinit.exe -show >nul 2>nul
 
 echo.
 echo   Done! Starting the bar... / 완료! 바를 켭니다...

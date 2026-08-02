@@ -5,6 +5,7 @@ title XERO Bar - install / update
 set "DESTDIR=%USERPROFILE%\XERO Bar"
 set "DEST=%DESTDIR%\XERO_bar.ahk"
 set "URL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/XERO_bar.ahk"
+set "ICOURL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero.ico"
 
 echo.
 echo   Installing / updating the XERO Bar...
@@ -22,8 +23,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
-rem  Point the desktop shortcut at the new self-updating bar
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\XERO Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; $l.Save()"
+rem  Xero logo for the desktop shortcut (best effort)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\xero.ico' } catch {}"
+
+rem  Point the desktop shortcut at the new self-updating bar (with Xero icon when available)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\XERO Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; if(Test-Path '%DESTDIR%\xero.ico'){$l.IconLocation='%DESTDIR%\xero.ico,0'}; $l.Save()"
+ie4uinit.exe -show >nul 2>nul
 
 echo   Done. Starting the bar...
 start "" "%DEST%"
