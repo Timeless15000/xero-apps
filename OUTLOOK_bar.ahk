@@ -11,7 +11,7 @@
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 
-APPVER := 10                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
+APPVER := 11                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -40,6 +40,8 @@ if (opacity > 100)
     opacity := 100
 g := ""
 checks := Map()
+pickBox := ""
+pickMap := Map()
 items := []
 
 ; 첫 실행 시 바탕화면에 "OUTLOOK Bar" 아이콘 자동 생성
@@ -205,7 +207,7 @@ RunTool(id, *) {
 }
 
 RunFlaggedSummary(mailbox := "") {
-    global busy
+    global busy, pickBox, pickMap
     if busy {
         Tip("이미 실행 중입니다 - 잠시만요...")
         return
@@ -214,26 +216,53 @@ RunFlaggedSummary(mailbox := "") {
         MsgBox("src\index.js 를 찾을 수 없습니다.`nOUTLOOK_bar.ahk 는 Outlook 저장소 폴더 안에서 실행해야 합니다.", "OUTLOOK Bar", 0x30)
         return
     }
-    ; 어느 사서함을 요약할지 먼저 확인한다 (Outlook에 계정이 여러 개 붙어 있는 경우)
+
     box := mailbox
     if (box = "") {
-        Tip("사서함 확인 중...", 15000)
-        tmp := A_Temp "\outlookbar_which.txt"
-        try FileDelete(tmp)
-        try RunWait(A_ComSpec ' /c node "src\index.js" --which-mailbox > "' tmp '"', A_ScriptDir, "Hide")
-        out := ""
-        try out := FileRead(tmp, "UTF-8")
-        try FileDelete(tmp)
+        ; Outlook 에 붙어 있는 사서함 목록을 받아 직접 고르게 한다
+        Tip("사서함 목록 확인 중...", 20000)
+        out := CaptureNode(' /c node "src\index.js" --list-mailboxes')
         ToolTip()
-        if RegExMatch(out, "MAILBOX=([^\r\n]*)", &mm)
-            box := Trim(mm[1], " `t")
+
+        cur := ""
+        if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
+            cur := Trim(mc[1], " `t")
+
+        pickMap := Map()
+        labels := []
+        pos := 1
+        while (hit := RegExMatch(out, "m)^MBOX=([^\t\r\n]+)\t?([^\r\n]*)$", &m, pos)) {
+            pos := hit + StrLen(m[0]) + 1
+            smtp := Trim(m[1], " `t")
+            nm := Trim(m[2], " `t")
+            lbl := (nm != "" && nm != smtp) ? nm "  (" smtp ")" : smtp
+            if (smtp = cur)
+                lbl := lbl "   ← 지금 보는 폴더"
+            if !pickMap.Has(lbl) {
+                pickMap[lbl] := smtp
+                labels.Push(lbl)
+            }
+        }
+
+        if (labels.Length = 0) {
+            if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n(Outlook 이 켜져 있는지 확인해 주세요)`n`n로그인한 본인 계정으로 요약할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
+                return
+        } else {
+            pickBox := ""
+            mnu := Menu()
+            mnu.Add("요약할 사서함을 고르세요", (*) => "")
+            mnu.Disable("요약할 사서함을 고르세요")
+            mnu.Add()
+            for lbl in labels
+                mnu.Add(lbl, PickMailbox)
+            mnu.Add()
+            mnu.Add("취소", (*) => "")
+            try mnu.Show()
+            if (pickBox = "")
+                return
+            box := pickBox
+        }
     }
-    if (box = "")
-        msg := "로그인한 본인 계정의 Inbox 를 요약합니다."
-    else
-        msg := "이 사서함의 Inbox 를 요약합니다:`n`n        " box
-    if (MsgBox(msg "`n`n계속할까요?`n(다른 계정을 원하면 아니오 → Outlook에서 그 계정 폴더를 클릭 후 다시 누르세요)", "OUTLOOK Bar", 0x4 | 0x20) != "Yes")
-        return
 
     busy := true
     Tip("Flagged Summary 생성 중" (box ? " (" box ")" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
@@ -249,6 +278,23 @@ RunFlaggedSummary(mailbox := "") {
         MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐거나 권한이 새로 필요하면:`n  Outlook 폴더의 ""Login again.bat"" 을 실행하세요.`n- 다른 사람/다른 회사 계정의 사서함은 접근 권한이 있어야 합니다.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
     }
 }
+
+PickMailbox(name, pos, mnu) {
+    global pickBox, pickMap
+    pickBox := pickMap.Has(name) ? pickMap[name] : ""
+}
+
+; 노드 명령 출력을 임시파일로 받아 문자열로 돌려준다
+CaptureNode(cmd) {
+    tmp := A_Temp "\outlookbar_out.txt"
+    try FileDelete(tmp)
+    try RunWait(A_ComSpec cmd ' > "' tmp '"', A_ScriptDir, "Hide")
+    out := ""
+    try out := FileRead(tmp, "UTF-8")
+    try FileDelete(tmp)
+    return out
+}
+
 
 Tip(msg, dur := 2500) {
     ToolTip(msg)
