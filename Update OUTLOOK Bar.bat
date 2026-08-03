@@ -36,20 +36,9 @@ for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]
 )
 if defined DESTDIR goto :havefolder
 
-rem  Still not found - copy the program from the company shared folder (automatic)
+rem  Still not found - locate the company shared copy (works for any OneDrive/SharePoint layout)
 set "SRCDIR="
-for %%S in (
-  "%OneDriveCommercial%\Timeless 042026 - Documents\Admin\Automation\Outlook"
-  "%OneDriveCommercial%\Admin\Automation\Outlook"
-  "%OneDrive%\Timeless 042026 - Documents\Admin\Automation\Outlook"
-  "%OneDrive%\Admin\Automation\Outlook"
-  "%OneDriveCommercial%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
-  "%OneDriveCommercial%\Admin\Automation\OUTLOOK Bar\Outlook"
-  "%OneDrive%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
-  "%OneDrive%\Admin\Automation\OUTLOOK Bar\Outlook"
-) do (
-  if not defined SRCDIR if exist "%%~S\src\index.js" set "SRCDIR=%%~S"
-)
+for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$mids=@('Timeless 042026 - Documents\Admin\Automation\Outlook','Admin\Automation\Outlook','Automation\Outlook','Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook'); $roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; foreach($r in $roots){ if(-not $r){continue}; foreach($m in $mids){ $p=Join-Path $r $m; if(Test-Path (Join-Path $p 'src\index.js')){ Write-Output $p; exit } } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
 if not defined SRCDIR goto :nofolder
 echo   Copying the program from the company shared folder... / 회사 공유 폴더에서 프로그램 복사 중...
 set "DESTDIR=%USERPROFILE%\OUTLOOK Bar\Outlook"
@@ -155,13 +144,15 @@ exit /b 1
 
 :nofolder
 echo.
-echo   "Outlook" folder NOT found on this PC.
-echo   Ask the admin for the Outlook folder, copy it to your Documents folder,
-echo   then run this file again.
+echo   OUTLOOK program not found on this PC yet.
+echo   Make sure the company OneDrive is signed in and synced,
+echo   wait a few minutes, then run this file again.
+echo   If it still fails, contact the admin.
 echo.
-echo   이 PC에 "Outlook" 폴더가 없어요.
-echo   관리자에게 Outlook 폴더를 받아 문서(Documents) 폴더에 넣고,
-echo   이 파일을 다시 실행하세요.
+echo   이 PC에서 OUTLOOK 프로그램을 아직 못 찾았어요.
+echo   회사 OneDrive 로그인/동기화가 됐는지 확인하고,
+echo   몇 분 뒤에 이 파일을 다시 실행하세요.
+echo   계속 안 되면 관리자(Brian)에게 알려주세요.
 echo.
 pause
 exit /b 1
