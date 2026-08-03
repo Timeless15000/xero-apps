@@ -255,7 +255,7 @@ var mkey=function(txt){var s=String(txt||&#x27;&#x27;);var m=s.match(/(\d{1,2})\
 var mtxt=function(k){return MT[k%12]+&#x27; &#x27;+Math.floor(k/12);};
 var amt=function(s){var v=parseFloat(String(s||&#x27;&#x27;).replace(/[^0-9.\-]/g,&#x27;&#x27;));return isNaN(v)?0:v;};
 var fmt=function(v){return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,&#x27;,&#x27;);};
-var widget=function(txt){var w=document.getElementById(&#x27;xpaybox&#x27;);if(!w){w=document.createElement(&#x27;div&#x27;);w.id=&#x27;xpaybox&#x27;;w.style.cssText=&#x27;position:fixed;top:8px;right:8px;z-index:2147483647;background:#B71C1C;color:#fff;font:bold 13px Arial;padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:380px&#x27;;var s=document.createElement(&#x27;span&#x27;);s.id=&#x27;xpaytxt&#x27;;w.appendChild(s);var b=document.createElement(&#x27;button&#x27;);b.textContent=&#x27;STOP&#x27;;b.style.cssText=&#x27;margin-left:10px;background:#fff;color:#B71C1C;border:none;border-radius:5px;padding:4px 10px;font-weight:bold;cursor:pointer&#x27;;b.onclick=function(){var st2=null;try{st2=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}if(st2&amp;&amp;st2.rows&amp;&amp;st2.rows.length){finish(st2,1);}else{stopAll();}};w.appendChild(b);document.body.appendChild(w);}var t=document.getElementById(&#x27;xpaytxt&#x27;);if(t)t.textContent=txt;};
+var widget=function(txt){var w=document.getElementById(&#x27;xpaybox&#x27;);if(!w){w=document.createElement(&#x27;div&#x27;);w.id=&#x27;xpaybox&#x27;;w.style.cssText=&#x27;position:fixed;top:8px;right:8px;z-index:2147483647;background:#B71C1C;color:#fff;font:bold 13px Arial;padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:380px&#x27;;var s=document.createElement(&#x27;span&#x27;);s.id=&#x27;xpaytxt&#x27;;w.appendChild(s);var b=document.createElement(&#x27;button&#x27;);b.textContent=&#x27;STOP&#x27;;b.style.cssText=&#x27;margin-left:10px;background:#fff;color:#B71C1C;border:none;border-radius:5px;padding:4px 10px;font-weight:bold;cursor:pointer&#x27;;b.onclick=function(){window.__xpayStop=1;if(window.__xpayFin){var t2=document.getElementById(&#x27;xpaytxt&#x27;);if(t2)t2.textContent=&#x27;Stopping - building the report...&#x27;;return;}var st2=null;try{st2=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}if(st2&amp;&amp;st2.rows&amp;&amp;st2.rows.length){finish(st2,1);}else{stopAll();}};w.appendChild(b);document.body.appendChild(w);}var t=document.getElementById(&#x27;xpaytxt&#x27;);if(t)t.textContent=txt;};
 var colRows=function(){
 var tbs=[].slice.call(document.querySelectorAll(&#x27;table&#x27;));
 for(var ti=0;ti&lt;tbs.length;ti++){
@@ -341,6 +341,7 @@ var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0&lt;ks.length
 var mkcu=function(o,g){o.cu=sc?(location.origin+&#x27;/app/&#x27;+sc+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;):(location.origin+&#x27;/Contacts/View/&#x27;+g);};
 var i=0;var LIM=Math.min(targets.length,80);
 var next=function(){
+if(window.__xpayStop){cb();return;}
 if(i&gt;=LIM){cb();return;}
 var o=targets[i];i++;
 widget(&#x27;Payment Review - contact links &#x27;+i+&#x27;/&#x27;+LIM+&#x27;...&#x27;);
@@ -523,7 +524,7 @@ if(st.pg&gt;=1&amp;&amp;!fr){finish(st,0);return;}
 st.pg=(st.pg||0)+1;
 try{localStorage.setItem(LSQ,JSON.stringify(st));}catch(_e){}
 widget(&#x27;Payment Review - page &#x27;+st.pg+&#x27; · &#x27;+st.rows.length+&#x27; invoices...&#x27;);
-var nx=(st.pg&lt;99)?nextCtl():null;
+var nx=(st.all&amp;&amp;st.pg&lt;99)?nextCtl():null;
 if(!nx){finish(st,0);return;}
 var f1=(its[0]||{}).k||&#x27;&#x27;;
 try{nx.click();}catch(_e){finish(st,0);return;}
@@ -547,10 +548,15 @@ stopAll();return;
 }
 var items=colRows();
 if(!items.length){alert(&#x27;Cannot see the invoice list.\nOpen Sales &gt; Invoices &gt; Awaiting Payment first, then run Payment Review.&#x27;);return;}
-if(!confirm(&#x27;PAYMENT REVIEW - find customers whose payments stopped mid-way\n\n* Run this on the Awaiting Payment tab. Other tabs give wrong results.\n\nCollects every page automatically (current &gt; last), then groups unpaid invoices by customer:\n- [X] Skipped payments: unpaid month(s) followed by paid months (e.g. Mar unpaid, Apr-May paid, Jun-Jul unpaid)\n- [!] 3+ consecutive months behind\n- [?] Old unpaid: nothing newer in the list - needs review\n- Only the last 1-2 months unpaid = OK (not listed)\n\nWhen finished, the HTML report downloads and opens in a new tab.\nStart?&#x27;))return;
+window.__xpayStop=0;
+var _mode=prompt(&#x27;PAYMENT REVIEW - customers whose payments stopped mid-way\n\n* Use the Awaiting Payment tab. Other tabs give wrong results.\n\nType 1 or 2:\n  1 = THIS LIST ONLY (what you see now - use after a search/filter)\n  2 = ALL PAGES (this page to the last page)\n\nGroups unpaid invoices by customer:\n- [X] Skipped payments   - [!] 3+ months behind   - [?] Old unpaid\n- Only the last 1-2 months unpaid = OK (not listed)&#x27;,&#x27;1&#x27;);
+if(_mode===null)return;
+_mode=String(_mode).trim();
+if(_mode!==&#x27;1&#x27;&amp;&amp;_mode!==&#x27;2&#x27;){alert(&#x27;Cancelled - type 1 or 2.&#x27;);return;}
+window.__xpayAllPages=(_mode===&#x27;2&#x27;);
 var tabC=String(Math.random()).slice(2);
 try{sessionStorage.setItem(&#x27;xpay_tab&#x27;,tabC);}catch(_e){}
-var stC={ph:&#x27;col&#x27;,rows:[],tab:tabC,pg:0,lu:location.href};
+var stC={ph:&#x27;col&#x27;,rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0};
 localStorage.setItem(LSQ,JSON.stringify(stC));
 localStorage.setItem(LSR,&#x27;1&#x27;);
 window.__xpayBusy=1;
