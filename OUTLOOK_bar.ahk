@@ -12,7 +12,7 @@
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 
-APPVER := 12                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
+APPVER := 14                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
