@@ -29,8 +29,11 @@ for %%D in (
 ) do (
   if not defined DESTDIR if exist "%%~D\src\index.js" set "DESTDIR=%%~D"
 )
-rem  Managed staff copy: always refresh it from the company folder (auto-update)
-if /i "%DESTDIR%"=="%USERPROFILE%\OUTLOOK Bar\Outlook" goto :findshared
+rem  Staff copy: always refresh from the company folder (auto-update).
+rem  Only the admin's own GitHub clone is left alone.
+if defined DESTDIR (
+  echo %DESTDIR% | find /i "GitHub" >nul || goto :findshared
+)
 rem  Also check the REAL Documents/Desktop folders (OneDrive-redirected PCs)
 if defined DESTDIR goto :havefolder
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('MyDocuments'); [Environment]::GetFolderPath('Desktop'); [Environment]::GetFolderPath('UserProfile')+'\Downloads'"`) do (

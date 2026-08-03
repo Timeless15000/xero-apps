@@ -11,8 +11,10 @@
 ; EDIT: 보여줄 버튼만 체크 → SAVE / X(취소). 크기 조절: 창 오른쪽 아래 코너 드래그. 설정은 저장됨.
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
+UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
+AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 16                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 18                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -62,6 +64,11 @@ try {
 }
 
 Build()
+
+if AUTO_UPDATE {
+    SetTimer(() => CheckUpdate(true), -4000)              ; 켠 뒤 4초 후 1회
+    SetTimer(() => CheckUpdate(true), 2 * 60 * 60 * 1000) ; 이후 2시간마다
+}
 
 Build() {
     global g, tools, enabled, editMode, posX, posY, checks, scale, items, opacity, APPVER, DATEVER
@@ -250,8 +257,8 @@ RunFlaggedSummary(mailbox := "") {
             if RegExMatch(out, "STATE=([^\r\n]*)", &ms)
                 state := Trim(ms[1], " `t")
             if (state = "new") {
-                MsgBox("이 PC는 ""새 Outlook(New Outlook)"" 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
-                     . "Outlook 오른쪽 위의 ""새 Outlook"" 스위치를 꺼서`n"
+                MsgBox("이 PC는 새 Outlook(New Outlook) 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
+                     . "Outlook 오른쪽 위의 [새 Outlook] 스위치를 꺼서`n"
                      . "기존 Outlook 으로 바꾼 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
                 return
             }
@@ -309,6 +316,80 @@ CaptureNode(cmd) {
     return out
 }
 
+
+; ===== 자동 업데이트 =====
+; ① 회사 공유 폴더에서 프로그램 파일(src\*.js 등) 최신화  ② GitHub 에서 바 파일 최신화 → 바뀌었으면 재시작
+CheckUpdate(silent := true) {
+    global UPDATE_URL, ini
+    last := IniRead(ini, "update", "lastreload", "")
+    if (last != "" && DateDiff(A_Now, last, "Seconds") < 120)
+        return
+
+    RefreshProgram()
+
+    remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
+    if (remote = "" || StrLen(remote) < 800 || !InStr(remote, "OUTLOOK Desktop Bar") || !InStr(remote, "#Requires AutoHotkey")) {
+        if !silent
+            Tip("업데이트 확인 실패 - 인터넷/GitHub 확인")
+        return
+    }
+    cur := ""
+    try cur := FileRead(A_ScriptFullPath, "UTF-8")
+    if (NormTxt(remote) == NormTxt(cur)) {
+        if !silent
+            Tip("이미 최신이에요")
+        return
+    }
+    try FileCopy(A_ScriptFullPath, A_Temp "\OUTLOOK_bar.bak.ahk", true)
+    try {
+        f := FileOpen(A_ScriptFullPath, "w", "UTF-8-RAW")
+        f.Write(remote)
+        f.Close()
+    } catch {
+        if !silent
+            Tip("업데이트 저장 실패")
+        return
+    }
+    IniWrite(A_Now, ini, "update", "lastreload")
+    Tip("OUTLOOK 바 업데이트됨 - 잠시만요...")
+    Sleep(800)
+    Reload()
+}
+
+; 회사 공유 폴더(Admin\Automation\Outlook)에서 프로그램 파일을 조용히 최신화
+RefreshProgram() {
+    if InStr(A_ScriptDir, "GitHub")
+        return
+    ps := 'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
+        . "$mids=@('Timeless 042026 - Documents\Admin\Automation\Outlook','Admin\Automation\Outlook','Automation\Outlook');"
+        . "$roots=@($env:OneDriveCommercial,$env:OneDrive);"
+        . "Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName };"
+        . "$src='';"
+        . "foreach($r in $roots){ if(-not $r){continue}; foreach($m in $mids){ $p=Join-Path $r $m; if(Test-Path (Join-Path $p 'src\index.js')){ $src=$p; break } }; if($src){break} };"
+        . "if($src){ robocopy $src '" A_ScriptDir "' /E /XD node_modules reports .git .claude docs /XF tokens.json state.json log.txt 'flagged-cache*.json' OUTLOOK_bar.ini OUTLOOK_bar.ahk | Out-Null }"
+        . '"'
+    try RunWait(A_ComSpec ' /c ' ps, , "Hide")
+}
+
+HttpGet(url) {
+    try {
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.Open("GET", url, false)
+        whr.SetTimeouts(3000, 3000, 3000, 5000)
+        whr.SetRequestHeader("Cache-Control", "no-cache")
+        whr.SetRequestHeader("Pragma", "no-cache")
+        whr.Send()
+        if (whr.Status = 200)
+            return whr.ResponseText
+    }
+    return ""
+}
+
+NormTxt(s) {
+    s := StrReplace(s, Chr(0xFEFF), "")
+    s := StrReplace(s, "`r", "")
+    return Trim(s, " `t`n")
+}
 
 Tip(msg, dur := 2500) {
     ToolTip(msg)
