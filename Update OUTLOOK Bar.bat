@@ -10,6 +10,7 @@ set "NODEDIR=%LOCALAPPDATA%\node-lts"
 rem  Find the Outlook folder (the one that contains src\index.js)
 set "DESTDIR="
 for %%D in (
+  "%USERPROFILE%\OUTLOOK Bar\Outlook"
   "%OneDrive%\Document\GitHub\Outlook"
   "%OneDrive%\Documents\GitHub\Outlook"
   "%USERPROFILE%\OneDrive\Document\GitHub\Outlook"
@@ -33,7 +34,23 @@ if defined DESTDIR goto :havefolder
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('MyDocuments'); [Environment]::GetFolderPath('Desktop'); [Environment]::GetFolderPath('UserProfile')+'\Downloads'"`) do (
   if not defined DESTDIR if exist "%%P\Outlook\src\index.js" set "DESTDIR=%%P\Outlook"
 )
-if not defined DESTDIR goto :nofolder
+if defined DESTDIR goto :havefolder
+
+rem  Still not found - copy the program from the company shared folder (automatic)
+set "SRCDIR="
+for %%S in (
+  "%OneDriveCommercial%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
+  "%OneDriveCommercial%\Admin\Automation\OUTLOOK Bar\Outlook"
+  "%OneDrive%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
+  "%OneDrive%\Admin\Automation\OUTLOOK Bar\Outlook"
+) do (
+  if not defined SRCDIR if exist "%%~S\src\index.js" set "SRCDIR=%%~S"
+)
+if not defined SRCDIR goto :nofolder
+echo   Copying the program from the company shared folder... / 회사 공유 폴더에서 프로그램 복사 중...
+set "DESTDIR=%USERPROFILE%\OUTLOOK Bar\Outlook"
+robocopy "%SRCDIR%" "%DESTDIR%" /E /XD node_modules reports .git .claude docs /XF tokens.json state.json log.txt flagged-cache.json OUTLOOK_bar.ini >nul
+if not exist "%DESTDIR%\src\index.js" goto :nofolder
 :havefolder
 
 set "DEST=%DESTDIR%\OUTLOOK_bar.ahk"
