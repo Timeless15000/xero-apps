@@ -63,10 +63,11 @@ if exist "%NODEDIR%\node.exe" (
   set "PATH=%NODEDIR%;%PATH%"
   goto :havenode
 )
-echo   [1/4] Installing Node.js automatically... (one time, 1-2 min / 자동 설치 - 처음 한 번, 1~2분)
+echo   [1/4] Installing Node.js... please wait 1-3 min, do NOT close this window
+echo          Node.js 설치 중... 1~3분 걸려요. 창을 닫지 마세요
 set "NARCH=win-x64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "NARCH=win-arm64"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $b='https://nodejs.org/dist/latest-v24.x/'; $s=(Invoke-WebRequest -UseBasicParsing ($b+'SHASUMS256.txt')).Content; $n=[regex]::Match($s,'node-v[0-9.]+-%NARCH%\.zip').Value; if(-not $n){exit 1}; $z=Join-Path $env:TEMP 'node-lts.zip'; Invoke-WebRequest -UseBasicParsing ($b+$n) -OutFile $z; $t=Join-Path $env:TEMP 'node-lts-unzip'; if(Test-Path $t){Remove-Item $t -Recurse -Force}; Expand-Archive -Path $z -DestinationPath $t -Force; $i=Get-ChildItem $t -Directory | Select-Object -First 1; $d='%NODEDIR%'; if(Test-Path $d){Remove-Item $d -Recurse -Force}; Move-Item $i.FullName $d; Remove-Item $z -Force; Remove-Item $t -Recurse -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $b='https://nodejs.org/dist/latest-v24.x/'; $s=(Invoke-WebRequest -UseBasicParsing ($b+'SHASUMS256.txt')).Content; $n=[regex]::Match($s,'node-v[0-9.]+-%NARCH%\.zip').Value; if(-not $n){exit 1}; $z=Join-Path $env:TEMP 'node-lts.zip'; Invoke-WebRequest -UseBasicParsing ($b+$n) -OutFile $z; $t=Join-Path $env:TEMP 'node-lts-unzip'; if(Test-Path $t){Remove-Item $t -Recurse -Force}; Expand-Archive -Path $z -DestinationPath $t -Force; $i=Get-ChildItem $t -Directory | Select-Object -First 1; $d='%NODEDIR%'; if(Test-Path $d){Remove-Item $d -Recurse -Force}; Move-Item $i.FullName $d; Remove-Item $z -Force; Remove-Item $t -Recurse -Force"
 if exist "%NODEDIR%\node.exe" (
   set "PATH=%NODEDIR%;%PATH%"
   goto :havenode
@@ -99,7 +100,7 @@ rem  ---- AutoHotkey v2 (auto install if missing - no admin needed) ----
 call :findahk
 if defined AHKEXE goto :haveahk
 echo   Installing AutoHotkey... (one time, 1 min / 자동 설치 - 처음 한 번, 1분)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing 'https://www.autohotkey.com/download/ahk-v2.exe' -OutFile ($env:TEMP+'\ahk-v2-setup.exe'); exit 0 } catch { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing 'https://www.autohotkey.com/download/ahk-v2.exe' -OutFile ($env:TEMP+'\ahk-v2-setup.exe'); exit 0 } catch { exit 1 }"
 if not exist "%TEMP%\ahk-v2-setup.exe" goto :ahkfail
 start /wait "" "%TEMP%\ahk-v2-setup.exe" /silent
 call :findahk
@@ -108,11 +109,11 @@ if not defined AHKEXE goto :ahkfail
 
 rem  ---- [4/4] download the latest bar (cache-busted) ----
 echo   [4/4] Getting the latest bar...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
 if errorlevel 1 goto :dlfail
 
 rem  Outlook logo for the desktop shortcut (best effort)
-if not exist "%DESTDIR%\outlook.ico" powershell -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\outlook.ico' } catch {}"
+if not exist "%DESTDIR%\outlook.ico" powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\outlook.ico' } catch {}"
 
 rem  Desktop shortcut (with Outlook icon when available)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\OUTLOOK Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; if(Test-Path '%DESTDIR%\outlook.ico'){$l.IconLocation='%DESTDIR%\outlook.ico,0'}; $l.Save()"

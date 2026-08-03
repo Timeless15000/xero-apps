@@ -18,7 +18,7 @@ rem  ---- AutoHotkey v2 (auto install if missing - no admin needed) ----
 call :findahk
 if defined AHKEXE goto :haveahk
 echo   Installing AutoHotkey... (one time, 1 min / 자동 설치 - 처음 한 번, 1분)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing 'https://www.autohotkey.com/download/ahk-v2.exe' -OutFile ($env:TEMP+'\ahk-v2-setup.exe'); exit 0 } catch { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing 'https://www.autohotkey.com/download/ahk-v2.exe' -OutFile ($env:TEMP+'\ahk-v2-setup.exe'); exit 0 } catch { exit 1 }"
 if not exist "%TEMP%\ahk-v2-setup.exe" goto :ahkfail
 start /wait "" "%TEMP%\ahk-v2-setup.exe" /silent
 call :findahk
@@ -26,11 +26,11 @@ if not defined AHKEXE goto :ahkfail
 :haveahk
 
 rem  Download the latest bar (cache-busted)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
 if errorlevel 1 goto :dlfail
 
 rem  Xero logo for the desktop shortcut (best effort)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\xero.ico' } catch {}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri ('%ICOURL%?v=' + (Get-Random)) -OutFile '%DESTDIR%\xero.ico' } catch {}"
 
 rem  Point the desktop shortcut at the new self-updating bar (with Xero icon when available)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; $l=$w.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\XERO Bar.lnk'); $l.TargetPath='%DEST%'; $l.WorkingDirectory='%DESTDIR%'; if(Test-Path '%DESTDIR%\xero.ico'){$l.IconLocation='%DESTDIR%\xero.ico,0'}; $l.Save()"
