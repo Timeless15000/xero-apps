@@ -11,14 +11,13 @@
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 
-APPVER := 8                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
+APPVER := 10                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
 ; 공유 사서함 버튼을 늘리려면 {label, c, id:"영문id", mbox:"<메일주소>"} 한 줄을 추가하면 된다
 tools := [
-    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary", mbox:""},   ; 보고 있는 사서함 자동
-    {label:"Flagged - Strata1", c:"7A4FBF", id:"flaggedstrata1", mbox:"strata1@timelesscommercial.com.au"}
+    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary", mbox:""}   ; 보고 있는 사서함 자동
 ]
 
 enabled := Map()
@@ -215,18 +214,39 @@ RunFlaggedSummary(mailbox := "") {
         MsgBox("src\index.js 를 찾을 수 없습니다.`nOUTLOOK_bar.ahk 는 Outlook 저장소 폴더 안에서 실행해야 합니다.", "OUTLOOK Bar", 0x30)
         return
     }
+    ; 어느 사서함을 요약할지 먼저 확인한다 (Outlook에 계정이 여러 개 붙어 있는 경우)
+    box := mailbox
+    if (box = "") {
+        Tip("사서함 확인 중...", 15000)
+        tmp := A_Temp "\outlookbar_which.txt"
+        try FileDelete(tmp)
+        try RunWait(A_ComSpec ' /c node "src\index.js" --which-mailbox > "' tmp '"', A_ScriptDir, "Hide")
+        out := ""
+        try out := FileRead(tmp, "UTF-8")
+        try FileDelete(tmp)
+        ToolTip()
+        if RegExMatch(out, "MAILBOX=([^\r\n]*)", &mm)
+            box := Trim(mm[1], " `t")
+    }
+    if (box = "")
+        msg := "로그인한 본인 계정의 Inbox 를 요약합니다."
+    else
+        msg := "이 사서함의 Inbox 를 요약합니다:`n`n        " box
+    if (MsgBox(msg "`n`n계속할까요?`n(다른 계정을 원하면 아니오 → Outlook에서 그 계정 폴더를 클릭 후 다시 누르세요)", "OUTLOOK Bar", 0x4 | 0x20) != "Yes")
+        return
+
     busy := true
-    Tip("Flagged Summary 생성 중" (mailbox ? " (" mailbox ")" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
+    Tip("Flagged Summary 생성 중" (box ? " (" box ")" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
     cmd := ' /c node "src\index.js" --flagged-summary'
-    if (mailbox != "")
-        cmd .= ' --mailbox "' mailbox '"'
+    if (box != "")
+        cmd .= ' --mailbox "' box '"'
     ec := RunWait(A_ComSpec cmd, A_ScriptDir, "Hide")
     ToolTip()
     busy := false
     if (ec = 9009) {
         MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
     } else if (ec != 0) {
-        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐거나 권한이 새로 필요하면: Outlook 폴더에서 npm run login`n- 공유 사서함(Strata1)은 그 사서함 접근 권한이 있어야 합니다.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
+        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐거나 권한이 새로 필요하면:`n  Outlook 폴더의 ""Login again.bat"" 을 실행하세요.`n- 다른 사람/다른 회사 계정의 사서함은 접근 권한이 있어야 합니다.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
     }
 }
 
