@@ -4,17 +4,21 @@
 ; ================= OUTLOOK Desktop Bar =================
 ; XERO 바와 같은 조작감의 데스크톱 바. 차이점: 버튼이 단축키를 보내는 대신
 ; 이 저장소의 Node 명령을 직접 실행한다 (Tampermonkey 불필요).
-; - Flagged Summary: flag된 메일 전체를 AI 요약과 함께 HTML 리포트로 정리해 브라우저로 연다.
+; - Flagged Summary: flag된 메일을 AI 요약과 함께 HTML 리포트로 정리해 브라우저로 연다.
+;   지금 Outlook 화면에 보고 있는 사서함(공유·추가 사서함 포함)을 자동으로 대상으로 삼는다.
+;   특정 사서함을 항상 보려면 tools 에 mbox 를 지정한 버튼을 두면 된다.
 ; EDIT: 보여줄 버튼만 체크 → SAVE / X(취소). 크기 조절: 창 오른쪽 아래 코너 드래그. 설정은 저장됨.
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 
-APPVER := 6                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
+APPVER := 8                              ; 앱 버전 — 수정할 때마다 +1 (제목에 v6 처럼 표시)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
+; 공유 사서함 버튼을 늘리려면 {label, c, id:"영문id", mbox:"<메일주소>"} 한 줄을 추가하면 된다
 tools := [
-    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary"}
+    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary", mbox:""},   ; 보고 있는 사서함 자동
+    {label:"Flagged - Strata1", c:"7A4FBF", id:"flaggedstrata1", mbox:"strata1@timelesscommercial.com.au"}
 ]
 
 enabled := Map()
@@ -192,12 +196,16 @@ CancelEdit() {
 
 ; ================= 버튼 동작 =================
 RunTool(id, *) {
-    global busy
-    if (id = "flaggedsummary")
-        RunFlaggedSummary()
+    global busy, tools
+    for t in tools {
+        if (t.id = id) {
+            RunFlaggedSummary(t.HasOwnProp("mbox") ? t.mbox : "")
+            return
+        }
+    }
 }
 
-RunFlaggedSummary() {
+RunFlaggedSummary(mailbox := "") {
     global busy
     if busy {
         Tip("이미 실행 중입니다 - 잠시만요...")
@@ -208,14 +216,17 @@ RunFlaggedSummary() {
         return
     }
     busy := true
-    Tip("Flagged Summary 생성 중... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
-    ec := RunWait(A_ComSpec ' /c node "src\index.js" --flagged-summary', A_ScriptDir, "Hide")
+    Tip("Flagged Summary 생성 중" (mailbox ? " (" mailbox ")" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
+    cmd := ' /c node "src\index.js" --flagged-summary'
+    if (mailbox != "")
+        cmd .= ' --mailbox "' mailbox '"'
+    ec := RunWait(A_ComSpec cmd, A_ScriptDir, "Hide")
     ToolTip()
     busy := false
     if (ec = 9009) {
         MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
     } else if (ec != 0) {
-        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐다면: Outlook 폴더에서 npm run login`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
+        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- 로그인이 만료됐거나 권한이 새로 필요하면: Outlook 폴더에서 npm run login`n- 공유 사서함(Strata1)은 그 사서함 접근 권한이 있어야 합니다.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
     }
 }
 
