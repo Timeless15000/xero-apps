@@ -52,7 +52,7 @@ echo   OUTLOOK Bar - install / update
 echo   Folder: %DESTDIR%
 echo.
 
-rem  ---- [1/4] Node.js (fully automatic - no admin rights needed) ----
+rem  ---- [1/3] Node.js (fully automatic - no admin rights needed) ----
 where node >nul 2>nul
 if not errorlevel 1 goto :havenode
 if exist "%ProgramFiles%\nodejs\node.exe" (
@@ -63,7 +63,7 @@ if exist "%NODEDIR%\node.exe" (
   set "PATH=%NODEDIR%;%PATH%"
   goto :havenode
 )
-echo   [1/4] Installing Node.js... please wait 1-3 min, do NOT close this window
+echo   [1/3] Installing Node.js... please wait 1-3 min, do NOT close this window
 echo          Node.js 설치 중... 1~3분 걸려요. 창을 닫지 마세요
 set "NARCH=win-x64"
 if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "NARCH=win-arm64"
@@ -77,24 +77,14 @@ goto :nodefail
 rem  Make portable Node available to the bar later too (user PATH, one time)
 if exist "%NODEDIR%\node.exe" powershell -NoProfile -ExecutionPolicy Bypass -Command "$d='%NODEDIR%'; $p=[Environment]::GetEnvironmentVariable('Path','User'); if(-not $p){$p=''}; if($p -notlike ('*'+$d+'*')){[Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';')+';'+$d),'User')}"
 
-rem  ---- [2/4] npm install (first time only) ----
+rem  ---- [2/3] npm install (first time only) ----
 if exist "%DESTDIR%\node_modules" goto :havedeps
-echo   [2/4] Preparing files... (one time, 1-3 min / 처음 한 번, 1~3분)
+echo   [2/3] Preparing files... (one time, 1-3 min / 처음 한 번, 1~3분)
 pushd "%DESTDIR%"
 call npm install
 popd
 :havedeps
 
-rem  ---- [3/4] login (first time only) ----
-if exist "%DESTDIR%\tokens.json" goto :havelogin
-echo.
-echo   [3/4] A LOGIN window will open - sign in with your WORK email.
-echo         로그인 창이 뜨면 "회사 메일"로 로그인하세요.
-echo.
-pushd "%DESTDIR%"
-call npm run login
-popd
-:havelogin
 
 rem  ---- AutoHotkey v2 (auto install if missing - no admin needed) ----
 call :findahk
@@ -107,8 +97,8 @@ call :findahk
 if not defined AHKEXE goto :ahkfail
 :haveahk
 
-rem  ---- [4/4] download the latest bar (cache-busted) ----
-echo   [4/4] Getting the latest bar...
+rem  ---- [3/3] download the latest bar (cache-busted) ----
+echo   [3/3] Getting the latest bar...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; try { Invoke-WebRequest -UseBasicParsing -Uri ('%URL%?v=' + (Get-Random)) -OutFile '%DEST%'; exit 0 } catch { exit 1 }"
 if errorlevel 1 goto :dlfail
 
