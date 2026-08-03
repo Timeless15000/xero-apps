@@ -39,6 +39,10 @@ if defined DESTDIR goto :havefolder
 rem  Still not found - copy the program from the company shared folder (automatic)
 set "SRCDIR="
 for %%S in (
+  "%OneDriveCommercial%\Timeless 042026 - Documents\Admin\Automation\Outlook"
+  "%OneDriveCommercial%\Admin\Automation\Outlook"
+  "%OneDrive%\Timeless 042026 - Documents\Admin\Automation\Outlook"
+  "%OneDrive%\Admin\Automation\Outlook"
   "%OneDriveCommercial%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
   "%OneDriveCommercial%\Admin\Automation\OUTLOOK Bar\Outlook"
   "%OneDrive%\Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook"
