@@ -12,7 +12,7 @@
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 
-APPVER := 14                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 16                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -246,7 +246,20 @@ RunFlaggedSummary(mailbox := "") {
         }
 
         if (labels.Length = 0) {
-            if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n(Outlook 이 켜져 있는지 확인해 주세요)`n`n로그인한 본인 계정으로 요약할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
+            state := ""
+            if RegExMatch(out, "STATE=([^\r\n]*)", &ms)
+                state := Trim(ms[1], " `t")
+            if (state = "new") {
+                MsgBox("이 PC는 ""새 Outlook(New Outlook)"" 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
+                     . "Outlook 오른쪽 위의 ""새 Outlook"" 스위치를 꺼서`n"
+                     . "기존 Outlook 으로 바꾼 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+                return
+            }
+            if (state = "none") {
+                MsgBox("Outlook 이 실행되고 있지 않습니다.`n`nOutlook 을 켠 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+                return
+            }
+            if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n`n로그인한 본인 계정으로 요약할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
                 return
         } else {
             pickBox := ""
