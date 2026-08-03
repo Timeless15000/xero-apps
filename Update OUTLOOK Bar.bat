@@ -29,6 +29,8 @@ for %%D in (
 ) do (
   if not defined DESTDIR if exist "%%~D\src\index.js" set "DESTDIR=%%~D"
 )
+rem  Managed staff copy: always refresh it from the company folder (auto-update)
+if /i "%DESTDIR%"=="%USERPROFILE%\OUTLOOK Bar\Outlook" goto :findshared
 rem  Also check the REAL Documents/Desktop folders (OneDrive-redirected PCs)
 if defined DESTDIR goto :havefolder
 for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('MyDocuments'); [Environment]::GetFolderPath('Desktop'); [Environment]::GetFolderPath('UserProfile')+'\Downloads'"`) do (
@@ -36,13 +38,14 @@ for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]
 )
 if defined DESTDIR goto :havefolder
 
-rem  Still not found - locate the company shared copy (works for any OneDrive/SharePoint layout)
+rem  Locate the company shared copy (works for any OneDrive/SharePoint layout)
+:findshared
 set "SRCDIR="
 for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$mids=@('Timeless 042026 - Documents\Admin\Automation\Outlook','Admin\Automation\Outlook','Automation\Outlook','Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook'); $roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; foreach($r in $roots){ if(-not $r){continue}; foreach($m in $mids){ $p=Join-Path $r $m; if(Test-Path (Join-Path $p 'src\index.js')){ Write-Output $p; exit } } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
 if not defined SRCDIR goto :nofolder
-echo   Copying the program from the company shared folder... / 회사 공유 폴더에서 프로그램 복사 중...
+echo   Getting the latest program from the company folder... / 회사 폴더에서 최신 프로그램 가져오는 중...
 set "DESTDIR=%USERPROFILE%\OUTLOOK Bar\Outlook"
-robocopy "%SRCDIR%" "%DESTDIR%" /E /XD node_modules reports .git .claude docs /XF tokens.json state.json log.txt flagged-cache.json OUTLOOK_bar.ini >nul
+robocopy "%SRCDIR%" "%DESTDIR%" /E /XD node_modules reports .git .claude docs /XF tokens.json state.json log.txt "flagged-cache*.json" OUTLOOK_bar.ini >nul
 if not exist "%DESTDIR%\src\index.js" goto :nofolder
 :havefolder
 
