@@ -410,7 +410,7 @@ var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;
 +&#x27;.pbar button{border:none;border-radius:4px;padding:7px 14px;font-weight:bold;cursor:pointer;font-size:12px}&#x27;
 +&#x27;.pbtn{background:#0B6E4F;color:#fff}.psel{background:#e3e8ec;color:#333}&#x27;
 +&#x27;&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
+h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.rf&amp;&amp;st.rf.length?&#x27;Ref: &#x27;+st.rf.join(&#x27;, &#x27;)+&#x27; · &#x27;:&#x27;&#x27;)+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;wrap&quot;&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
 +&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;$&#x27;+fmt(R.due)+&#x27;&lt;/b&gt;&lt;span&gt;Total outstanding&lt;/span&gt;&lt;/div&gt;&#x27;
@@ -518,8 +518,12 @@ window.__xpayFin=0;
 };
 var colGo=function(st,its){
 if(localStorage.getItem(LSR)!==&#x27;1&#x27;){window.__xpayBusy=0;return;}
-var sn={};st.rows.forEach(function(x){sn[x.k]=1;});
-var fr=0;its.forEach(function(x){if(sn[x.k])return;sn[x.k]=1;fr++;st.rows.push(x);});
+if(!st.seen){st.seen={};st.rows.forEach(function(x){st.seen[x.k]=1;});}
+var _rfre=null;
+if(st.rf&amp;&amp;st.rf.length){_rfre=st.rf.map(function(s){return new RegExp(&#x27;(^|[^A-Za-z0-9])&#x27;+s.replace(/[.*+?^${}()|[\]\\]/g,&#x27;\\$&amp;&#x27;)+&#x27;([^A-Za-z0-9]|$)&#x27;,&#x27;i&#x27;);});}
+var fr=0;its.forEach(function(x){if(st.seen[x.k])return;st.seen[x.k]=1;fr++;
+if(_rfre){var _rt=String(x.r||&#x27;&#x27;),_hit=0;for(var _q=0;_q&lt;_rfre.length;_q++){if(_rfre[_q].test(_rt)){_hit=1;break;}}if(!_hit)return;}
+st.rows.push(x);});
 if(st.pg&gt;=1&amp;&amp;!fr){finish(st,0);return;}
 st.pg=(st.pg||0)+1;
 try{localStorage.setItem(LSQ,JSON.stringify(st));}catch(_e){}
@@ -554,9 +558,15 @@ if(_mode===null)return;
 _mode=String(_mode).trim();
 if(_mode!==&#x27;1&#x27;&amp;&amp;_mode!==&#x27;2&#x27;){alert(&#x27;Cancelled - type 1 or 2.&#x27;);return;}
 window.__xpayAllPages=(_mode===&#x27;2&#x27;);
+var _rfdef=&#x27;&#x27;;try{_rfdef=localStorage.getItem(&#x27;xpay_rf&#x27;)||&#x27;&#x27;;}catch(_e){}
+var _rfin=prompt(&#x27;Reference filter - comma separated, empty = ALL invoices\n(ex: ww1, ww2, ww3 -&gt; only these refs; wws4 etc excluded)&#x27;,_rfdef||&#x27;ww1, ww2, ww3&#x27;);
+if(_rfin===null)return;
+_rfin=_rfin.replace(/^\s+|\s+$/g,&#x27;&#x27;);
+try{localStorage.setItem(&#x27;xpay_rf&#x27;,_rfin);}catch(_e){}
+var _rft=_rfin?_rfin.split(&#x27;,&#x27;).map(function(s){return s.replace(/^\s+|\s+$/g,&#x27;&#x27;);}).filter(function(s){return s;}):[];
 var tabC=String(Math.random()).slice(2);
 try{sessionStorage.setItem(&#x27;xpay_tab&#x27;,tabC);}catch(_e){}
-var stC={ph:&#x27;col&#x27;,rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0};
+var stC={ph:&#x27;col&#x27;,rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0,rf:_rft};
 localStorage.setItem(LSQ,JSON.stringify(stC));
 localStorage.setItem(LSR,&#x27;1&#x27;);
 window.__xpayBusy=1;
