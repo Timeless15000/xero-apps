@@ -14,13 +14,14 @@ ini := A_ScriptDir "\OUTLOOK_bar.ini"
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 20                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 21                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
 ; 공유 사서함 버튼을 늘리려면 {label, c, id:"영문id", mbox:"<메일주소>"} 한 줄을 추가하면 된다
 tools := [
-    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary", mbox:""}   ; 보고 있는 사서함 자동
+    {label:"Flagged Summary", c:"0F6CBD", id:"flaggedsummary", mbox:""},   ; 보고 있는 사서함 자동
+    {label:"Review Daily",    c:"C8511B", id:"reviewdaily",    mbox:""}    ; 최근 24시간 미답장 메일
 ]
 
 enabled := Map()
@@ -209,9 +210,113 @@ RunTool(id, *) {
     global busy, tools
     for t in tools {
         if (t.id = id) {
-            RunFlaggedSummary(t.HasOwnProp("mbox") ? t.mbox : "")
+            mb := t.HasOwnProp("mbox") ? t.mbox : ""
+            if (t.id = "reviewdaily")
+                RunReviewDaily(mb)
+            else
+                RunFlaggedSummary(mb)
             return
         }
+    }
+}
+
+; 사서함 선택 공통 흐름 (목록 메뉴). 반환: Map("ok",0|1, "box","")
+; ok=0 → 취소/실패(중단). ok=1 & box="" → 로그인한 본인 계정(기본 사서함)으로 진행.
+PickMailboxFlow() {
+    global pickBox, pickMap
+    r := Map("ok", 0, "box", "")
+    Tip("사서함 목록 확인 중...", 20000)
+    out := CaptureNode(' /c node "src\index.js" --list-mailboxes')
+    ToolTip()
+
+    cur := ""
+    if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
+        cur := Trim(mc[1], " `t")
+
+    ; 주소를 못 구한 공유 사서함(예: "Timeless Work")은 smtp가 비어 있고 이름만 온다 — 이름으로 지정해 실행한다
+    pickMap := Map()
+    labels := []
+    pos := 1
+    while (hit := RegExMatch(out, "m)^MBOX=([^\t\r\n]*)\t?([^\r\n]*)$", &m, pos)) {
+        pos := hit + StrLen(m[0]) + 1
+        smtp := Trim(m[1], " `t")
+        nm := Trim(m[2], " `t")
+        if (smtp = "" && nm = "")
+            continue
+        lbl := (smtp = "") ? nm : ((nm != "" && nm != smtp) ? nm "  (" smtp ")" : smtp)
+        if ((smtp != "" && smtp = cur) || (smtp = "" && nm = cur))
+            lbl := lbl "   ← 지금 보는 폴더"
+        if !pickMap.Has(lbl) {
+            pickMap[lbl] := (smtp != "") ? smtp : nm
+            labels.Push(lbl)
+        }
+    }
+
+    if (labels.Length = 0) {
+        state := ""
+        if RegExMatch(out, "STATE=([^\r\n]*)", &ms)
+            state := Trim(ms[1], " `t")
+        if (state = "new") {
+            MsgBox("이 PC는 새 Outlook(New Outlook) 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
+                 . "Outlook 오른쪽 위의 [새 Outlook] 스위치를 꺼서`n"
+                 . "기존 Outlook 으로 바꾼 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+            return r
+        }
+        if (state = "none") {
+            MsgBox("Outlook 이 실행되고 있지 않습니다.`n`nOutlook 을 켠 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+            return r
+        }
+        if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n`n로그인한 본인 계정으로 진행할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
+            return r
+        r["ok"] := 1
+        return r
+    }
+
+    pickBox := ""
+    mnu := Menu()
+    mnu.Add("사서함을 고르세요", (*) => "")
+    mnu.Disable("사서함을 고르세요")
+    mnu.Add()
+    for lbl in labels
+        mnu.Add(lbl, PickMailbox)
+    mnu.Add()
+    mnu.Add("취소", (*) => "")
+    try mnu.Show()
+    if (pickBox = "")
+        return r
+    r["ok"] := 1
+    r["box"] := pickBox
+    return r
+}
+
+; Review Daily — 최근 24시간 Inbox에서 답장 안 한 메일 리포트
+RunReviewDaily(mailbox := "") {
+    global busy
+    if busy {
+        Tip("이미 실행 중입니다 - 잠시만요...")
+        return
+    }
+    if !FileExist(A_ScriptDir "\src\index.js") {
+        MsgBox("src\index.js 를 찾을 수 없습니다.`nOUTLOOK_bar.ahk 는 Outlook 저장소 폴더 안에서 실행해야 합니다.", "OUTLOOK Bar", 0x30)
+        return
+    }
+    box := mailbox
+    if (box = "") {
+        r := PickMailboxFlow()
+        if !r["ok"]
+            return
+        box := r["box"]
+    }
+    busy := true
+    EnvSet("OBAR_MBOXPICK", box)
+    Tip("Review Daily 생성 중" (box != "" ? " (" box ")" : "") "... (10~30초, 완료되면 브라우저가 열립니다)", 60000)
+    ec := RunWait(A_ComSpec ' /c node "src\index.js" --review-daily', A_ScriptDir, "Hide")
+    ToolTip()
+    busy := false
+    if (ec = 9009) {
+        MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+    } else if (ec != 0) {
+        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- Outlook 이 켜져 있어야 합니다.`n- 방금 Outlook 을 켰다면 잠시 뒤 다시 눌러주세요.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
     }
 }
 
@@ -228,65 +333,10 @@ RunFlaggedSummary(mailbox := "") {
 
     box := mailbox
     if (box = "") {
-        ; Outlook 에 붙어 있는 사서함 목록을 받아 직접 고르게 한다
-        Tip("사서함 목록 확인 중...", 20000)
-        out := CaptureNode(' /c node "src\index.js" --list-mailboxes')
-        ToolTip()
-
-        cur := ""
-        if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
-            cur := Trim(mc[1], " `t")
-
-        ; 주소를 못 구한 공유 사서함(예: "Timeless Work")은 smtp가 비어 있고 이름만 온다 — 이름으로 지정해 실행한다
-        pickMap := Map()
-        labels := []
-        pos := 1
-        while (hit := RegExMatch(out, "m)^MBOX=([^\t\r\n]*)\t?([^\r\n]*)$", &m, pos)) {
-            pos := hit + StrLen(m[0]) + 1
-            smtp := Trim(m[1], " `t")
-            nm := Trim(m[2], " `t")
-            if (smtp = "" && nm = "")
-                continue
-            lbl := (smtp = "") ? nm : ((nm != "" && nm != smtp) ? nm "  (" smtp ")" : smtp)
-            if ((smtp != "" && smtp = cur) || (smtp = "" && nm = cur))
-                lbl := lbl "   ← 지금 보는 폴더"
-            if !pickMap.Has(lbl) {
-                pickMap[lbl] := (smtp != "") ? smtp : nm
-                labels.Push(lbl)
-            }
-        }
-
-        if (labels.Length = 0) {
-            state := ""
-            if RegExMatch(out, "STATE=([^\r\n]*)", &ms)
-                state := Trim(ms[1], " `t")
-            if (state = "new") {
-                MsgBox("이 PC는 새 Outlook(New Outlook) 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
-                     . "Outlook 오른쪽 위의 [새 Outlook] 스위치를 꺼서`n"
-                     . "기존 Outlook 으로 바꾼 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-                return
-            }
-            if (state = "none") {
-                MsgBox("Outlook 이 실행되고 있지 않습니다.`n`nOutlook 을 켠 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-                return
-            }
-            if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n`n로그인한 본인 계정으로 요약할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
-                return
-        } else {
-            pickBox := ""
-            mnu := Menu()
-            mnu.Add("요약할 사서함을 고르세요", (*) => "")
-            mnu.Disable("요약할 사서함을 고르세요")
-            mnu.Add()
-            for lbl in labels
-                mnu.Add(lbl, PickMailbox)
-            mnu.Add()
-            mnu.Add("취소", (*) => "")
-            try mnu.Show()
-            if (pickBox = "")
-                return
-            box := pickBox
-        }
+        r := PickMailboxFlow()
+        if !r["ok"]
+            return
+        box := r["box"]
     }
 
     ; ---- 폴더 선택: Inbox 하위 폴더가 있으면 전체/일부를 골라 요약한다 ----
