@@ -45,7 +45,12 @@ rem  Locate the company shared copy (works for any OneDrive/SharePoint layout)
 :findshared
 set "SRCDIR="
 for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$mids=@('Timeless 042026 - Documents\Admin\Automation\Outlook','Admin\Automation\Outlook','Automation\Outlook','Timeless 042026 - Documents\Admin\Automation\OUTLOOK Bar\Outlook'); $roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; foreach($r in $roots){ if(-not $r){continue}; foreach($m in $mids){ $p=Join-Path $r $m; if(Test-Path (Join-Path $p 'src\index.js')){ Write-Output $p; exit } } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
+if defined SRCDIR goto :havesrc
+rem  Not in the usual spots - deeper scan (renamed OneDrive shortcuts, other layouts)
+echo   Searching for the company Outlook folder... 1-2 min / 회사 Outlook 폴더 검색 중... 1~2분 걸릴 수 있어요
+for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; $roots = $roots | Where-Object { $_ -and ($_ -notmatch 'AppData$') } | Select-Object -Unique; foreach($r in $roots){ if(-not (Test-Path $r)){continue}; $hit = Get-ChildItem -Path $r -Directory -Recurse -Depth 5 -Filter Outlook -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch 'node_modules|OUTLOOK Bar|AppData|\.git' } | Where-Object { Test-Path (Join-Path $_.FullName 'src\index.js') } | Select-Object -First 1; if($hit){ Write-Output $hit.FullName; exit } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
 if not defined SRCDIR goto :nofolder
+:havesrc
 echo   Getting the latest program from the company folder... / 회사 폴더에서 최신 프로그램 가져오는 중...
 set "DESTDIR=%USERPROFILE%\OUTLOOK Bar\Outlook"
 robocopy "%SRCDIR%" "%DESTDIR%" /E /XD node_modules reports .git .claude docs /XF tokens.json state.json log.txt "flagged-cache*.json" OUTLOOK_bar.ini >nul
@@ -142,13 +147,17 @@ exit /b 1
 :nofolder
 echo.
 echo   OUTLOOK program not found on this PC yet.
-echo   Make sure the company OneDrive is signed in and synced,
-echo   wait a few minutes, then run this file again.
+echo   1^) Open the company SharePoint site in the browser:
+echo      Documents ^> Admin ^> Automation ^> Outlook
+echo   2^) Click "Sync" or "Add shortcut to OneDrive" on that folder.
+echo   3^) Wait a few minutes for OneDrive, then run this file again.
 echo   If it still fails, contact the admin.
 echo.
 echo   이 PC에서 OUTLOOK 프로그램을 아직 못 찾았어요.
-echo   회사 OneDrive 로그인/동기화가 됐는지 확인하고,
-echo   몇 분 뒤에 이 파일을 다시 실행하세요.
+echo   1^) 브라우저에서 회사 SharePoint 사이트를 열고:
+echo      문서 ^> Admin ^> Automation ^> Outlook
+echo   2^) 그 폴더에서 "동기화(Sync)" 또는 "OneDrive에 바로가기 추가"를 누르세요.
+echo   3^) OneDrive 동기화가 끝나길 몇 분 기다렸다가 이 파일을 다시 실행하세요.
 echo   계속 안 되면 관리자(Brian)에게 알려주세요.
 echo.
 pause
