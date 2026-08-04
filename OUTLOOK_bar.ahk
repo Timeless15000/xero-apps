@@ -14,7 +14,7 @@ ini := A_ScriptDir "\OUTLOOK_bar.ini"
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 18                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 19                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -42,6 +42,7 @@ if (opacity < 20)
 if (opacity > 100)
     opacity := 100
 g := ""
+fg := ""
 checks := Map()
 pickBox := ""
 pickMap := Map()
@@ -236,18 +237,21 @@ RunFlaggedSummary(mailbox := "") {
         if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
             cur := Trim(mc[1], " `t")
 
+        ; 주소를 못 구한 공유 사서함(예: "Timeless Work")은 smtp가 비어 있고 이름만 온다 — 이름으로 지정해 실행한다
         pickMap := Map()
         labels := []
         pos := 1
-        while (hit := RegExMatch(out, "m)^MBOX=([^\t\r\n]+)\t?([^\r\n]*)$", &m, pos)) {
+        while (hit := RegExMatch(out, "m)^MBOX=([^\t\r\n]*)\t?([^\r\n]*)$", &m, pos)) {
             pos := hit + StrLen(m[0]) + 1
             smtp := Trim(m[1], " `t")
             nm := Trim(m[2], " `t")
-            lbl := (nm != "" && nm != smtp) ? nm "  (" smtp ")" : smtp
-            if (smtp = cur)
+            if (smtp = "" && nm = "")
+                continue
+            lbl := (smtp = "") ? nm : ((nm != "" && nm != smtp) ? nm "  (" smtp ")" : smtp)
+            if ((smtp != "" && smtp = cur) || (smtp = "" && nm = cur))
                 lbl := lbl "   ← 지금 보는 폴더"
             if !pickMap.Has(lbl) {
-                pickMap[lbl] := smtp
+                pickMap[lbl] := (smtp != "") ? smtp : nm
                 labels.Push(lbl)
             }
         }
@@ -285,11 +289,92 @@ RunFlaggedSummary(mailbox := "") {
         }
     }
 
+    ; ---- 폴더 선택: Inbox 하위 폴더가 있으면 전체/일부를 골라 요약한다 ----
+    ; 한글 사서함·폴더 이름이 명령줄에서 깨지지 않도록 사서함은 환경변수로 전달
+    EnvSet("OBAR_MBOXPICK", box)
+    Tip("폴더 목록 확인 중...", 20000)
+    fout := CaptureNode(' /c node "src\index.js" --list-folders')
+    ToolTip()
+    fspecs := []
+    fdisps := []
+    pos := 1
+    while (hit := RegExMatch(fout, "m)^FLD=([^\t\r\n]+)\t([^\r\n]*)$", &fm, pos)) {
+        pos := hit + StrLen(fm[0]) + 1
+        fspecs.Push(fm[1])
+        fdisps.Push(Trim(fm[2], " `t"))
+    }
+    if (fspecs.Length <= 1) {
+        StartSummary(box, [])   ; 하위 폴더 없음 - 기존처럼 Inbox만
+        return
+    }
+    ShowFolderPick(box, fspecs, fdisps)
+}
+
+; 폴더 선택 창 - 체크한 폴더만 요약 (기본 = 전체 체크)
+ShowFolderPick(box, fspecs, fdisps) {
+    global fg
+    try {
+        if IsObject(fg)
+            fg.Destroy()
+    }
+    fg := Gui("+AlwaysOnTop +ToolWindow", "요약할 폴더 선택" (box != "" ? " - " box : ""))
+    fg.SetFont("s10", "Segoe UI")
+    fg.Add("Text", "xm", "요약할 폴더를 체크하세요 (기본 = 전체):")
+    cbs := []
+    for i, d in fdisps {
+        cb := fg.Add("CheckBox", "xm Checked", d)
+        cbs.Push(cb)
+    }
+    bAll := fg.Add("Button", "xm w90", "전체 선택")
+    bAll.OnEvent("Click", (*) => FpSetAll(cbs, 1))
+    bNone := fg.Add("Button", "x+8 w90", "전체 해제")
+    bNone.OnEvent("Click", (*) => FpSetAll(cbs, 0))
+    bGo := fg.Add("Button", "xm w110 Default", "요약 시작")
+    bGo.OnEvent("Click", FpGo.Bind(box, fspecs, cbs))
+    bCx := fg.Add("Button", "x+8 w90", "취소")
+    bCx.OnEvent("Click", (*) => fg.Destroy())
+    fg.OnEvent("Close", (*) => fg.Destroy())
+    fg.Show()
+}
+
+FpSetAll(cbs, v) {
+    for cb in cbs
+        cb.Value := v
+}
+
+FpGo(box, fspecs, cbs, *) {
+    global fg
+    sel := []
+    for i, cb in cbs {
+        if cb.Value
+            sel.Push(fspecs[i])
+    }
+    if (sel.Length = 0) {
+        Tip("폴더를 하나 이상 체크해 주세요")
+        return
+    }
+    fg.Destroy()
+    StartSummary(box, sel)
+}
+
+; 실제 리포트 생성 실행 (sel: 폴더 spec 배열, 비면 Inbox만)
+StartSummary(box, sel) {
+    global busy
     busy := true
-    Tip("Flagged Summary 생성 중" (box ? " (" box ")" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
+    EnvSet("OBAR_MBOXPICK", box)
     cmd := ' /c node "src\index.js" --flagged-summary'
-    if (box != "")
-        cmd .= ' --mailbox "' box '"'
+    if (sel.Length > 0) {
+        tmp := A_Temp "\outlookbar_folders.txt"
+        try FileDelete(tmp)
+        try {
+            f := FileOpen(tmp, "w", "UTF-8")
+            for s in sel
+                f.WriteLine(s)
+            f.Close()
+            cmd .= ' --folders-file "' tmp '"'
+        }
+    }
+    Tip("Flagged Summary 생성 중" (box != "" ? " (" box ")" : "") (sel.Length > 1 ? " - 폴더 " sel.Length "개" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
     ec := RunWait(A_ComSpec cmd, A_ScriptDir, "Hide")
     ToolTip()
     busy := false
