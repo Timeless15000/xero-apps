@@ -403,7 +403,7 @@ var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Review</t
 +'.pbar button{border:none;border-radius:4px;padding:7px 14px;font-weight:bold;cursor:pointer;font-size:12px}'
 +'.pbtn{background:#0B6E4F;color:#fff}.psel{background:#e3e8ec;color:#333}'
 +'</style></head><body>';
-h+='<div class="hd"><div class="t">Payment Review'+(stopped?' (stopped - partial results)':'')+'</div><small>'+new Date().toLocaleString()+' · Awaiting Payment · '+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers</small></div>';
+h+='<div class="hd"><div class="t">Payment Review'+(stopped?' (stopped - partial results)':'')+'</div><small>'+new Date().toLocaleString()+' · Awaiting Payment · '+(st.rf&&st.rf.length?'Ref: '+st.rf.join(', ')+' · ':'')+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers</small></div>';
 h+='<div class="wrap">';
 h+='<div class="sum">'
 +'<div class="card"><b>$'+fmt(R.due)+'</b><span>Total outstanding</span></div>'
@@ -511,8 +511,12 @@ window.__xpayFin=0;
 };
 var colGo=function(st,its){
 if(localStorage.getItem(LSR)!=='1'){window.__xpayBusy=0;return;}
-var sn={};st.rows.forEach(function(x){sn[x.k]=1;});
-var fr=0;its.forEach(function(x){if(sn[x.k])return;sn[x.k]=1;fr++;st.rows.push(x);});
+if(!st.seen){st.seen={};st.rows.forEach(function(x){st.seen[x.k]=1;});}
+var _rfre=null;
+if(st.rf&&st.rf.length){_rfre=st.rf.map(function(s){return new RegExp('(^|[^A-Za-z0-9])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Za-z0-9]|$)','i');});}
+var fr=0;its.forEach(function(x){if(st.seen[x.k])return;st.seen[x.k]=1;fr++;
+if(_rfre){var _rt=String(x.r||''),_hit=0;for(var _q=0;_q<_rfre.length;_q++){if(_rfre[_q].test(_rt)){_hit=1;break;}}if(!_hit)return;}
+st.rows.push(x);});
 if(st.pg>=1&&!fr){finish(st,0);return;}
 st.pg=(st.pg||0)+1;
 try{localStorage.setItem(LSQ,JSON.stringify(st));}catch(_e){}
@@ -547,9 +551,15 @@ if(_mode===null)return;
 _mode=String(_mode).trim();
 if(_mode!=='1'&&_mode!=='2'){alert('Cancelled - type 1 or 2.');return;}
 window.__xpayAllPages=(_mode==='2');
+var _rfdef='';try{_rfdef=localStorage.getItem('xpay_rf')||'';}catch(_e){}
+var _rfin=prompt('Reference filter - comma separated, empty = ALL invoices\n(ex: ww1, ww2, ww3 -> only these refs; wws4 etc excluded)',_rfdef||'ww1, ww2, ww3');
+if(_rfin===null)return;
+_rfin=_rfin.replace(/^\s+|\s+$/g,'');
+try{localStorage.setItem('xpay_rf',_rfin);}catch(_e){}
+var _rft=_rfin?_rfin.split(',').map(function(s){return s.replace(/^\s+|\s+$/g,'');}).filter(function(s){return s;}):[];
 var tabC=String(Math.random()).slice(2);
 try{sessionStorage.setItem('xpay_tab',tabC);}catch(_e){}
-var stC={ph:'col',rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0};
+var stC={ph:'col',rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0,rf:_rft};
 localStorage.setItem(LSQ,JSON.stringify(stC));
 localStorage.setItem(LSR,'1');
 window.__xpayBusy=1;
