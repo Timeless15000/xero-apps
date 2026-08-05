@@ -19,7 +19,7 @@ SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "index.js", "outlook
             , "outlook-read.js", "review-daily.js", "srcver.js", "unflag-server.js", "package.json"]
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 24                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 25                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -140,6 +140,12 @@ Build() {
             AddItem(b, M, y, CW, 32)
             y += 32 + gap
         }
+        ; UPDATE 버튼 — 항상 맨 아래 고정. 도구가 아니므로 EDIT 목록에 넣지 않는다
+        ; (뭔가 이상할 때 직원이 바로 누를 것이 있어야 하므로 숨길 수 없게 한다)
+        ub := g.Add("Text", "x" M " y" y " w" CW " h26 Center 0x200 Background546E7A cWhite", "UPDATE")
+        ub.OnEvent("Click", UpdateNow)
+        AddItem(ub, M, y, CW, 26)
+        y += 26 + gap
     }
     baseW := M + CW + M
     baseH := (y - gap) + M
@@ -504,6 +510,23 @@ CaptureNode(cmd) {
 }
 
 
+; ===== UPDATE 버튼 =====
+; 자동 업데이트(켤 때 + 2시간마다)를 기다리지 않고 지금 바로 실행한다.
+UpdateNow(*) {
+    global AUTO_UPDATE, busy
+    if busy {
+        Tip("이미 실행 중입니다 - 잠시만요...")
+        return
+    }
+    if !AUTO_UPDATE {
+        MsgBox("여기는 개발용 원본 폴더라 업데이트를 받지 않습니다.`n(직원 PC에서는 정상 작동합니다)", "OUTLOOK Bar", 0x40)
+        return
+    }
+    Tip("업데이트 확인 중...", 0)
+    CheckUpdate(false, true)   ; 새 버전이면 교체 후 재시작되므로 아래로 안 온다
+    HideTip()
+}
+
 ; ===== 프로그램 파일(src) GitHub 자동 업데이트 =====
 ; why: 예전에는 회사 폴더(SharePoint) 복사에만 의존해서, 그게 안 되면 조용히 옛 버전으로 남았다.
 ; 바가 스스로 최신이 되는 것과 똑같은 방식으로 프로그램 파일도 받아온다.
@@ -590,27 +613,35 @@ CheckSrcVersion(popup := false) {
 
 ; ===== 자동 업데이트 =====
 ; ① 회사 공유 폴더에서 프로그램 파일(src\*.js 등) 최신화  ② GitHub 에서 바 파일 최신화 → 바뀌었으면 재시작
-CheckUpdate(silent := true) {
-    global UPDATE_URL, ini
+CheckUpdate(silent := true, force := false) {
+    global UPDATE_URL, ini, APPVER
+    ; UPDATE 버튼으로 직접 누른 경우(force) 2분 쿨다운을 무시한다
     last := IniRead(ini, "update", "lastreload", "")
-    if (last != "" && DateDiff(A_Now, last, "Seconds") < 120)
+    if (!force && last != "" && DateDiff(A_Now, last, "Seconds") < 120)
         return
 
-    RefreshProgram()          ; 회사 폴더: config.json·서명 등
-    RefreshSrcFromGitHub()    ; GitHub: 프로그램 파일 (이쪽이 최신 기준)
-    CheckSrcVersion(true)     ; 대조 — 팝업은 srcWarned 로 1회만
+    RefreshProgram()               ; 회사 폴더: config.json·서명 등
+    srcN := RefreshSrcFromGitHub() ; GitHub: 프로그램 파일 (이쪽이 최신 기준)
+    CheckSrcVersion(true)          ; 대조 — 팝업은 srcWarned 로 1회만
 
     remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
     if (remote = "" || StrLen(remote) < 800 || !InStr(remote, "OUTLOOK Desktop Bar") || !InStr(remote, "#Requires AutoHotkey")) {
-        if !silent
-            Tip("업데이트 확인 실패 - 인터넷/GitHub 확인")
+        if !silent {
+            HideTip()
+            MsgBox("업데이트 확인에 실패했습니다.`n인터넷 연결을 확인하고 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
+        }
         return
     }
     cur := ""
     try cur := FileRead(A_ScriptFullPath, "UTF-8")
     if (NormTxt(remote) == NormTxt(cur)) {
-        if !silent
-            Tip("이미 최신이에요")
+        if !silent {
+            HideTip()
+            if (srcN > 0)
+                MsgBox("프로그램 파일 " srcN "개를 최신으로 받았습니다.`n`n이제 최신 상태입니다 (v" APPVER ").", "OUTLOOK Bar", 0x40)
+            else
+                MsgBox("이미 최신입니다 (v" APPVER ").", "OUTLOOK Bar", 0x40)
+        }
         return
     }
     try FileCopy(A_ScriptFullPath, A_Temp "\OUTLOOK_bar.bak.ahk", true)
@@ -619,8 +650,10 @@ CheckUpdate(silent := true) {
         f.Write(remote)
         f.Close()
     } catch {
-        if !silent
-            Tip("업데이트 저장 실패")
+        if !silent {
+            HideTip()
+            MsgBox("업데이트 저장에 실패했습니다.`n바를 껐다가 다시 켠 뒤 눌러주세요.", "OUTLOOK Bar", 0x30)
+        }
         return
     }
     IniWrite(A_Now, ini, "update", "lastreload")

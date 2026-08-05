@@ -8,7 +8,7 @@
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 20                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
+APPVER := 21                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Timeless_App.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
@@ -171,6 +171,12 @@ Build() {
             helpFor[b.Hwnd] := t.id
             y += 32 + gap
         }
+        ; UPDATE 버튼 — 항상 맨 아래에 고정 (도구가 아니므로 EDIT 목록에 넣지 않는다.
+        ; 뭔가 이상할 때 직원이 바로 누를 것이 있어야 하므로 숨길 수 없게 한다)
+        ub := g.Add("Text", "x" M " y" y " w" CW " h26 Center 0x200 Background546E7A cWhite", "UPDATE")
+        ub.OnEvent("Click", UpdateNow)
+        AddItem(ub, M, y, CW, 26)
+        y += 26 + gap
         ht := g.Add("Text", "x" M " y" y " w" CW " h15 Center c7F99AE Background1F2A38", "우클릭=설명 · R-click=info")
         AddItem(ht, M, y, CW, 15)
         y += 15 + gap
@@ -409,14 +415,50 @@ SendKey(key, *) {
     }
 }
 
+; ================= UPDATE 버튼 =================
+; XERO 바는 도구를 직접 갖고 있지 않다 — 도구 코드는 크롬(Tampermonkey) 안에 있다.
+; 그래서 ①바 파일을 GitHub 최신으로 맞추고 ②Xero 탭을 새로고침해서 최신 도구 코드를 불러오게 한다.
+UpdateNow(*) {
+    global AUTO_UPDATE
+    if AUTO_UPDATE {
+        Tip("바 업데이트 확인 중...")
+        CheckUpdate(false, true)      ; 새 버전이면 여기서 교체 후 재시작된다
+    }
+    ReloadChromeForTools()
+}
+
+; 새로고침을 두 번 하는 이유: 예전 로더는 새 코드를 받아 저장만 하고 다음 로드에 적용했다.
+; 최신 로더는 한 번이면 되지만, 두 번 해도 문제 없으므로 어느 쪽이든 확실히 최신이 되게 한다.
+ReloadChromeForTools() {
+    if !DoChromeReload()
+        return
+    Sleep(3500)
+    DoChromeReload()
+    Tip("최신 도구를 불러왔어요 - 이제 버튼을 눌러보세요")
+}
+
+DoChromeReload() {
+    hwnd := WinExist("ahk_exe chrome.exe")
+    if !hwnd {
+        Tip("크롬에서 Xero 페이지를 먼저 열어주세요")
+        return 0
+    }
+    WinActivate(hwnd)
+    if !WinWaitActive(hwnd, , 1)
+        return 0
+    Send("{F5}")
+    return 1
+}
+
 ; ================= 자동 업데이트 =================
 ; 켤 때 + 2시간마다 GitHub에서 최신 바를 확인.
 ; 새 버전이면 이 파일을 스스로 교체하고 리로드. .ini(설정)는 건드리지 않음.
-CheckUpdate(silent := true) {
+CheckUpdate(silent := true, force := false) {
     global UPDATE_URL, ini
     ; 리로드 직후 반복되는 것 방지: 직전 리로드 후 2분 이내면 건너뜀
+    ; (UPDATE 버튼으로 직접 누른 경우 force=true 로 이 제한을 무시한다)
     last := IniRead(ini, "update", "lastreload", "")
-    if (last != "" && DateDiff(A_Now, last, "Seconds") < 120)
+    if (!force && last != "" && DateDiff(A_Now, last, "Seconds") < 120)
         return
     remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
     ; 다운로드 검증 (네트워크 오류/404/반쪽짜리면 교체 안 함)

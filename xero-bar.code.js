@@ -246,6 +246,8 @@ var MN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:
 var MT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var mkey=function(txt){var s=String(txt||'');var m=s.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);if(m){var mo=MN[m[2].toLowerCase()];if(mo)return parseInt(m[3],10)*12+(mo-1);}m=s.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);if(m){var mo2=parseInt(m[2],10);if(mo2>=1&&mo2<=12)return parseInt(m[3],10)*12+(mo2-1);}return null;};
 var mtxt=function(k){return MT[k%12]+' '+Math.floor(k/12);};
+var pdate=function(txt){var s=String(txt||'');var m=s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);if(m){var mo=MN[m[2].toLowerCase()];if(mo)return new Date(parseInt(m[3],10),mo-1,parseInt(m[1],10));}m=s.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);if(m){var mo2=parseInt(m[2],10);if(mo2>=1&&mo2<=12)return new Date(parseInt(m[3],10),mo2-1,parseInt(m[1],10));}return null;};
+var odays=function(odTxt,ddTxt){var s=String(odTxt||'');var m=s.match(/(\d+)/);if(m)return parseInt(m[1],10);var d=pdate(ddTxt);if(!d)return null;var t=new Date();var n=Math.floor((new Date(t.getFullYear(),t.getMonth(),t.getDate())-d)/86400000);return n>0?n:0;};
 var amt=function(s){var v=parseFloat(String(s||'').replace(/[^0-9.\-]/g,''));return isNaN(v)?0:v;};
 var fmt=function(v){return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');};
 var widget=function(txt){var w=document.getElementById('xpaybox');if(!w){w=document.createElement('div');w.id='xpaybox';w.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#B71C1C;color:#fff;font:bold 13px Arial;padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:380px';var s=document.createElement('span');s.id='xpaytxt';w.appendChild(s);var b=document.createElement('button');b.textContent='STOP';b.style.cssText='margin-left:10px;background:#fff;color:#B71C1C;border:none;border-radius:5px;padding:4px 10px;font-weight:bold;cursor:pointer';b.onclick=function(){window.__xpayStop=1;if(window.__xpayFin){var t2=document.getElementById('xpaytxt');if(t2)t2.textContent='Stopping - building the report...';return;}var st2=null;try{st2=JSON.parse(localStorage.getItem(LSQ)||'null');}catch(_e){}if(st2&&st2.rows&&st2.rows.length){finish(st2,1);}else{stopAll();}};w.appendChild(b);document.body.appendChild(w);}var t=document.getElementById('xpaytxt');if(t)t.textContent=txt;};
@@ -258,7 +260,7 @@ if(!hcells.length){var r0=tb.querySelector('tr');if(r0)hcells=[].slice.call(r0.q
 if(!hcells.length)continue;
 var ix={};
 for(var hi=0;hi<hcells.length;hi++){var t0=(hcells[hi].innerText||hcells[hi].textContent||'').trim().toLowerCase();
-if(t0==='to'&&ix.to==null)ix.to=hi;else if(t0==='date'&&ix.dt==null)ix.dt=hi;else if(t0==='due'&&ix.du==null)ix.du=hi;else if(t0==='number'&&ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&&ix.rf==null)ix.rf=hi;}
+if(t0==='to'&&ix.to==null)ix.to=hi;else if(t0==='date'&&ix.dt==null)ix.dt=hi;else if(t0==='due'&&ix.du==null)ix.du=hi;else if(t0==='number'&&ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&&ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&&ix.od==null)ix.od=hi;else if(t0==='due date'&&ix.dd==null)ix.dd=hi;}
 if(ix.to==null||ix.dt==null||ix.du==null)continue;
 var rows=[].slice.call(tb.querySelectorAll('tbody tr'));
 var its=[];
@@ -271,7 +273,7 @@ if(dk==null||!to)return;
 var a=row.querySelector('a[href]');
 var u=a?a.href:'';if(/CreditNote/i.test(u))return;
 var n=gv(ix.no);var av=amt(gv(ix.du));
-its.push({c:to,d:dk,a:av,n:n,r:gv(ix.rf),dt:gv(ix.dt),u:u,k:n?n:(u+'|'+gv(ix.dt)+'|'+av)});
+its.push({c:to,d:dk,a:av,n:n,r:gv(ix.rf),dt:gv(ix.dt),od:odays(gv(ix.od),gv(ix.dd)),u:u,k:n?n:(u+'|'+gv(ix.dt)+'|'+av)});
 });
 if(its.length)return its;
 }
@@ -395,6 +397,7 @@ var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Review</t
 +'.tag{font-weight:bold;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;white-space:nowrap}'
 +'.tag.red{background:#c1272d;color:#fff}.tag.or{background:#e65100;color:#fff}.tag.ye{background:#c9a400;color:#fff}.tag.bl{background:#1266a5;color:#fff}'
 +'tr.gapr td{color:#2e7d32;font-style:italic;background:#f4faf4}'
++'.od1{color:#8a949e}.od2{color:#e65100;font-weight:bold}.od3{color:#c1272d;font-weight:bold}'
 +'td.amt,th.amt{text-align:right;white-space:nowrap}'
 +'a{color:#1266a5;text-decoration:none}a:hover{text-decoration:underline}'
 +'.ft{color:#888;font-size:11px;margin:22px 0}'
@@ -414,25 +417,26 @@ h+='<div class="sum">'
 +'<div class="card bl"><b>'+R.ok.length+'</b><span>Recent (last 1-2 months)</span></div>'
 +'</div>';
 h+='<div class="pbar"><button class="psel" onclick="xpdfSel(1)">Select all</button><button class="psel" onclick="xpdfSel(0)">Clear</button><button class="pbtn" id="xpdfgo" onclick="xpdfGo()">Download PDFs (<span id=xpdfn>0</span>)</button><span id="xpdfmsg" style="font-size:12px;color:#666">tick invoices below - each downloads as its own PDF</span></div>';
+var odHtml=function(d){if(d==null)return '';var c=d>=90?'od3':(d>=30?'od2':'od1');return '<span class="'+c+'">'+d+' days</span>';};
 var refHtml=function(r){var e=esc(r);return e.replace(/^(\s*)(ww)/i,'$1<span style="color:#c1272d;font-weight:bold">$2</span>');};
 var ckb=function(it){var m=String(it.u||'').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);return m?'<input type="checkbox" class="pdfck" data-id="'+m[0]+'" data-num="'+esc(it.n||('INV_'+m[0].slice(0,8)))+'">':'';};
 var rowsFor=function(o){
 var out='';var byM={};o.arr.forEach(function(it){(byM[it.d]=byM[it.d]||[]).push(it);});
 for(var k=o.mn;k<=o.mx;k++){
 if(byM[k]){byM[k].sort(function(a,b){return (a.n||'')<(b.n||'')?-1:1;}).forEach(function(it){
-out+='<tr><td>'+ckb(it)+mtxt(k)+'</td><td>'+(it.n?(it.u?'<a href="'+esc(it.u)+'" target="_blank">'+esc(it.n)+'</a>':esc(it.n)):'')+'</td><td>'+refHtml(it.r)+'</td><td>'+esc(it.dt)+'</td><td class="amt">'+fmt(it.a)+'</td></tr>';});}
+out+='<tr><td>'+ckb(it)+mtxt(k)+'</td><td>'+(it.n?(it.u?'<a href="'+esc(it.u)+'" target="_blank">'+esc(it.n)+'</a>':esc(it.n)):'')+'</td><td>'+refHtml(it.r)+'</td><td>'+esc(it.dt)+'</td><td>'+odHtml(it.od)+'</td><td class="amt">'+fmt(it.a)+'</td></tr>';});}
 else{var k2=k;while(k2+1<=o.mx&&!byM[k2+1])k2++;
 var anyD=false;if(o.pd){for(var kk=k;kk<=k2;kk++){if(o.pd[kk]&&o.pd[kk].length){anyD=true;break;}}}
 if(anyD){for(var kk2=k;kk2<=k2;kk2++){var ds=(o.pd&&o.pd[kk2]&&o.pd[kk2].length)?uniq(o.pd[kk2]).join(', '):null;
-out+='<tr class="gapr"><td colspan="5">'+mtxt(kk2)+' · Paid'+(ds?' '+ds:'')+'</td></tr>';}}
-else{out+='<tr class="gapr"><td colspan="5">'+(k2>k?(mtxt(k)+' - '+mtxt(k2)):mtxt(k))+' · Paid</td></tr>';}
+out+='<tr class="gapr"><td colspan="6">'+mtxt(kk2)+' · Paid'+(ds?' '+ds:'')+'</td></tr>';}}
+else{out+='<tr class="gapr"><td colspan="6">'+(k2>k?(mtxt(k)+' - '+mtxt(k2)):mtxt(k))+' · Paid</td></tr>';}
 k=k2;}}
 return out;};
 var section=function(list,cls,title,sub,tagf){
 if(!list.length)return;
 h+='<h2 class="'+cls+'">'+title+' ('+list.length+') <small>'+sub+'</small></h2>';
-h+='<table><thead><tr><th style="width:86px">Month</th><th style="width:120px">Invoice</th><th>Reference</th><th style="width:110px">Date</th><th class="amt" style="width:110px">Due AUD</th></tr></thead><tbody>';
-list.forEach(function(o){var fu=o.cu||(o.arr.filter(function(x){return x.u;})[0]||{}).u;var op=fu?' <a href="'+esc(fu)+'" target="_blank" style="font-size:11px">open in Xero &#8599;</a>':'';h+='<tr class="cust"><td colspan="4">'+esc(o.c)+' <span class="tag '+cls+'">'+tagf(o)+'</span>'+op+'</td><td class="amt">'+fmt(o.tot)+'</td></tr>'+rowsFor(o);});
+h+='<table><thead><tr><th style="width:86px">Month</th><th style="width:120px">Invoice</th><th>Reference</th><th style="width:110px">Date</th><th style="width:96px">Overdue by</th><th class="amt" style="width:110px">Due AUD</th></tr></thead><tbody>';
+list.forEach(function(o){var fu=o.cu||(o.arr.filter(function(x){return x.u;})[0]||{}).u;var op=fu?' <a href="'+esc(fu)+'" target="_blank" style="font-size:11px">open in Xero &#8599;</a>':'';h+='<tr class="cust"><td colspan="5">'+esc(o.c)+' <span class="tag '+cls+'">'+tagf(o)+'</span>'+op+'</td><td class="amt">'+fmt(o.tot)+'</td></tr>'+rowsFor(o);});
 h+='</tbody></table>';};
 section(R.gap,'red','Skipped payments','unpaid month(s) followed by paid months - the customer likely missed an invoice',function(o){return 'first unpaid '+mtxt(o.mn);});
 section(R.late,'or','3+ months behind','consecutive unpaid months up to now',function(o){return o.run+' months in a row';});
