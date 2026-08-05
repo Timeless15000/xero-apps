@@ -235,6 +235,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,'1');
 location.href=items[0].u;
 }catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"autocheckapprove",t:"IC App 1 page",c:"rgb(123, 31, 162)",run:function(){try{(function(){try{window.__xchkMode='appr';var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i<A.length;i++){if(A[i].k==='autocheckall'){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert('XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.');}}catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"autocheckapproveall",t:"IC App ALL pages",c:"rgb(156, 39, 176)",run:function(){try{(function(){try{window.__xchkMode='appr';window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i<A.length;i++){if(A[i].k==='autocheckall'){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert('XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.');}}catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"paymentreview",t:"Payment Review",c:"rgb(183, 28, 28)",run:function(){try{(function(){try{
+var PRBUILD='B3';   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ='xpay_q',LSR='xpay_run';
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||'null');}catch(_e){}
 var running=(localStorage.getItem(LSR)==='1');
@@ -260,7 +261,7 @@ if(!hcells.length){var r0=tb.querySelector('tr');if(r0)hcells=[].slice.call(r0.q
 if(!hcells.length)continue;
 var ix={};
 for(var hi=0;hi<hcells.length;hi++){var t0=(hcells[hi].innerText||hcells[hi].textContent||'').trim().toLowerCase();
-if(t0==='to'&&ix.to==null)ix.to=hi;else if(t0==='date'&&ix.dt==null)ix.dt=hi;else if(t0==='due'&&ix.du==null)ix.du=hi;else if(t0==='number'&&ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&&ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&&ix.od==null)ix.od=hi;else if(t0==='due date'&&ix.dd==null)ix.dd=hi;}
+if(t0==='to'&&ix.to==null)ix.to=hi;else if(t0==='date'&&ix.dt==null)ix.dt=hi;else if(t0==='due'&&ix.du==null)ix.du=hi;else if(t0==='number'&&ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&&ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&&ix.od==null)ix.od=hi;else if(/^due\s*date/.test(t0)&&ix.dd==null)ix.dd=hi;}
 if(ix.to==null||ix.dt==null||ix.du==null)continue;
 var rows=[].slice.call(tb.querySelectorAll('tbody tr'));
 var its=[];
@@ -407,7 +408,7 @@ var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Review</t
 +'.pbar button{border:none;border-radius:4px;padding:7px 14px;font-weight:bold;cursor:pointer;font-size:12px}'
 +'.pbtn{background:#0B6E4F;color:#fff}.psel{background:#e3e8ec;color:#333}'
 +'</style></head><body>';
-h+='<div class="hd"><div class="t">Payment Review'+(stopped?' (stopped - partial results)':'')+'</div><small>'+new Date().toLocaleString()+' · Awaiting Payment · '+(st.rf&&st.rf.length?'Ref: '+st.rf.join(', ')+' · ':'')+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers</small></div>';
+h+='<div class="hd"><div class="t">Payment Review <span style="font-size:12px;opacity:.75">['+PRBUILD+']</span>'+(stopped?' (stopped - partial results)':'')+'</div><small>'+new Date().toLocaleString()+' · Awaiting Payment · '+(st.rf&&st.rf.length?'Ref: '+st.rf.join(', ')+' · ':'')+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers</small></div>';
 h+='<div class="wrap">';
 h+='<div class="sum">'
 +'<div class="card"><b>$'+fmt(R.due)+'</b><span>Total outstanding</span></div>'

@@ -242,6 +242,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,&#x27;1&#x27;);
 location.href=items[0].u;
 }catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="31/07/26" style="background:#B71C1C" href="javascript:(function(){try{
+var PRBUILD=&#x27;B3&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ=&#x27;xpay_q&#x27;,LSR=&#x27;xpay_run&#x27;;
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}
 var running=(localStorage.getItem(LSR)===&#x27;1&#x27;);
@@ -267,7 +268,7 @@ if(!hcells.length){var r0=tb.querySelector(&#x27;tr&#x27;);if(r0)hcells=[].slice
 if(!hcells.length)continue;
 var ix={};
 for(var hi=0;hi&lt;hcells.length;hi++){var t0=(hcells[hi].innerText||hcells[hi].textContent||&#x27;&#x27;).trim().toLowerCase();
-if(t0===&#x27;to&#x27;&amp;&amp;ix.to==null)ix.to=hi;else if(t0===&#x27;date&#x27;&amp;&amp;ix.dt==null)ix.dt=hi;else if(t0===&#x27;due&#x27;&amp;&amp;ix.du==null)ix.du=hi;else if(t0===&#x27;number&#x27;&amp;&amp;ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&amp;&amp;ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&amp;&amp;ix.od==null)ix.od=hi;else if(t0===&#x27;due date&#x27;&amp;&amp;ix.dd==null)ix.dd=hi;}
+if(t0===&#x27;to&#x27;&amp;&amp;ix.to==null)ix.to=hi;else if(t0===&#x27;date&#x27;&amp;&amp;ix.dt==null)ix.dt=hi;else if(t0===&#x27;due&#x27;&amp;&amp;ix.du==null)ix.du=hi;else if(t0===&#x27;number&#x27;&amp;&amp;ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&amp;&amp;ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&amp;&amp;ix.od==null)ix.od=hi;else if(/^due\s*date/.test(t0)&amp;&amp;ix.dd==null)ix.dd=hi;}
 if(ix.to==null||ix.dt==null||ix.du==null)continue;
 var rows=[].slice.call(tb.querySelectorAll(&#x27;tbody tr&#x27;));
 var its=[];
@@ -414,7 +415,7 @@ var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;
 +&#x27;.pbar button{border:none;border-radius:4px;padding:7px 14px;font-weight:bold;cursor:pointer;font-size:12px}&#x27;
 +&#x27;.pbtn{background:#0B6E4F;color:#fff}.psel{background:#e3e8ec;color:#333}&#x27;
 +&#x27;&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.rf&amp;&amp;st.rf.length?&#x27;Ref: &#x27;+st.rf.join(&#x27;, &#x27;)+&#x27; · &#x27;:&#x27;&#x27;)+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
+h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review &lt;span style=&quot;font-size:12px;opacity:.75&quot;&gt;[&#x27;+PRBUILD+&#x27;]&lt;/span&gt;&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.rf&amp;&amp;st.rf.length?&#x27;Ref: &#x27;+st.rf.join(&#x27;, &#x27;)+&#x27; · &#x27;:&#x27;&#x27;)+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;wrap&quot;&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
 +&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;$&#x27;+fmt(R.due)+&#x27;&lt;/b&gt;&lt;span&gt;Total outstanding&lt;/span&gt;&lt;/div&gt;&#x27;
