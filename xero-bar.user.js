@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XERO bar
 // @namespace    xero-tools
-// @version      2026.07.09.1700
+// @version      2026.08.05.0400
 // @description  Always-latest loader for the XERO bar tools. Shows the bar INSTANTLY from a local cache, then refreshes the code in the background so the next page load has the newest version. Staff never reinstall or wait.
 // @author       Timeless
 // @match        https://go.xero.com/*
@@ -20,7 +20,8 @@
 // To make the bar appear with NO delay, it keeps the last-downloaded tool code in
 // Tampermonkey storage and runs THAT immediately on every Xero page (stale-while-revalidate),
 // then quietly downloads the newest xero-bar.code.js in the background and saves it for next time.
-// Result: the bar shows instantly, and a code change appears on the *next* page load.
+// Result: the bar shows instantly. And when newer code arrives, it is swapped in RIGHT AWAY
+// (no more "refresh twice" - see the hot-swap note in onload below).
 // (For an instant check of a change you just pushed, use the Increase Apply *bookmarklet* on the
 //  Xero apps page - that always runs the newest code with no cache.)
 // To change the tools, edit Xero_applications.html -> push -> the GitHub Action rebuilds
@@ -81,12 +82,23 @@
       onload: function (res) {
         var body = (res && res.responseText) ? res.responseText : '';
         if (res.status >= 200 && res.status < 300 && valid(body)) {
+          var changed = false;
           if (hasGM) {
             var prev = '';
             try { prev = GM_getValue(CACHE_KEY, ''); } catch (e) {}
-            if (body !== prev) { try { GM_setValue(CACHE_KEY, body); } catch (e) {} }
+            if (body !== prev) { changed = true; try { GM_setValue(CACHE_KEY, body); } catch (e) {} }
           }
-          if (!ran) { ran = true; runCode(body, CODE_URLS[i]); }   // no cache existed -> run fresh now
+          if (!ran) { ran = true; runCode(body, CODE_URLS[i]); return; }   // no cache existed -> run fresh now
+
+          // HOT-SWAP: newer code just arrived. Apply it now instead of waiting for the next page load.
+          // Safe because the tool code: (1) returns early if #xbar already exists, so we remove the old
+          // panel first; (2) registers the F13-F24 key listener only once, guarded by window.__xbarHK,
+          // so no double-firing; (3) that listener dispatches through window.__xbarTOOLS, which the
+          // re-run replaces -> the F-keys start using the new code immediately too.
+          if (changed) {
+            try { var oldbar = document.getElementById('xbar'); if (oldbar) oldbar.remove(); } catch (e) {}
+            runCode(body, 'hot-swap');
+          }
         } else {
           tryLoad(i + 1);
         }
