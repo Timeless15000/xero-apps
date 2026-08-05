@@ -1,0 +1,14 @@
+{
+  "name": "outlook-reply-drafter",
+  "version": "1.0.0",
+  "description": "새 메일이 오면 실시간으로 답장 초안을 Outlook 임시보관함에 자동 생성",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "login": "node src/index.js --login",
+    "once": "node src/index.js --once",
+    "clean": "node src/index.js --clean-summaries",
+    "flagged": "node src/index.js --flagged-summary"
+  },
+  "engines": { "node": ">=18" }
+}

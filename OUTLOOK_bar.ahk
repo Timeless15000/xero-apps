@@ -12,9 +12,14 @@
 
 ini := A_ScriptDir "\OUTLOOK_bar.ini"
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
+; 프로그램 파일(src)도 바와 똑같이 GitHub 에서 직접 받는다 (회사 폴더 복사에만 의존하지 않도록).
+; config.json(API 키)·tone-guide.md·서명 파일은 일부러 올리지 않는다 → 그것들은 계속 회사 폴더에서 온다.
+SRC_BASE := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/outlook-src/"
+SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "index.js", "outlook-detect.js"
+            , "outlook-read.js", "review-daily.js", "srcver.js", "unflag-server.js", "package.json"]
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 22                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 24                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -48,6 +53,8 @@ checks := Map()
 pickBox := ""
 pickMap := Map()
 items := []
+srcVer := ""        ; 프로그램 파일(src) 버전 — APPVER 와 달라지면 경고
+srcWarned := false
 tipG := ""          ; 로딩 상태창 (바 밑에 붙어 같이 움직인다)
 stickyMsg := ""     ; 작업이 끝날 때까지 유지할 메시지
 tipSeq := 0
@@ -73,6 +80,9 @@ Build()
 if AUTO_UPDATE {
     SetTimer(() => CheckUpdate(true), -4000)              ; 켠 뒤 4초 후 1회
     SetTimer(() => CheckUpdate(true), 2 * 60 * 60 * 1000) ; 이후 2시간마다
+    ; 버전 대조는 CheckUpdate 안에서 RefreshProgram 이 끝난 직후에 한다 (경합 방지)
+} else {
+    SetTimer(() => CheckSrcVersion(true), -1500)
 }
 
 Build() {
@@ -494,6 +504,90 @@ CaptureNode(cmd) {
 }
 
 
+; ===== 프로그램 파일(src) GitHub 자동 업데이트 =====
+; why: 예전에는 회사 폴더(SharePoint) 복사에만 의존해서, 그게 안 되면 조용히 옛 버전으로 남았다.
+; 바가 스스로 최신이 되는 것과 똑같은 방식으로 프로그램 파일도 받아온다.
+; 받은 내용이 비었거나 GitHub 오류 페이지면 건너뛰고 기존 파일을 그대로 둔다 (망가뜨리지 않음).
+RefreshSrcFromGitHub() {
+    global SRC_BASE, SRC_FILES
+    if InStr(A_ScriptDir, "GitHub")          ; 관리자 원본 폴더는 절대 덮어쓰지 않는다
+        return 0
+    dir := A_ScriptDir "\src"
+    if !DirExist(dir) {
+        try DirCreate(dir)
+    }
+    n := 0
+    Loop SRC_FILES.Length {
+        fn := SRC_FILES[A_Index]
+        body := HttpGet(SRC_BASE fn "?v=" A_TickCount)
+        if (body = "" || StrLen(body) < 50)
+            continue
+        if (SubStr(body, 1, 4) = "404:" || InStr(body, "<!DOCTYPE html"))
+            continue
+        path := dir "\" fn
+        cur := ""
+        try cur := FileRead(path, "UTF-8")
+        if (NormTxt(cur) == NormTxt(body))
+            continue
+        try {
+            f := FileOpen(path, "w", "UTF-8-RAW")
+            f.Write(body)
+            f.Close()
+            n += 1
+        }
+    }
+    return n
+}
+
+; ===== 프로그램 파일(src) 버전 대조 =====
+; 바는 GitHub 에서 자동으로 최신이 되지만 프로그램 파일은 회사 폴더에서 복사돼 온다.
+; 둘이 어긋나면 예전에는 아무 표시 없이 기능만 조용히 빠졌다 — 이제 바 제목에 계속 표시한다.
+CheckSrcVersion(popup := false) {
+    global srcVer, srcWarned, APPVER, DATEVER, g
+    ; why: 원인이 둘이라 안내가 달라야 한다 — 파일이 옛 버전인가, node 가 안 도는가
+    srcVer := ""
+    cause := ""
+    if !FileExist(A_ScriptDir "\src\index.js") {
+        cause := "noprog"                       ; 프로그램 자체가 없음
+    } else if !FileExist(A_ScriptDir "\src\srcver.js") {
+        cause := "old"                          ; srcver.js 는 v23 부터 있음 → 그 이전 버전
+    } else {
+        out := CaptureNode(' /c node "src\srcver.js"')
+        if RegExMatch(out, "SRCVER=(\d+)", &m)
+            srcVer := m[1]
+        if (srcVer = "")
+            cause := "node"                     ; 파일은 있는데 실행이 안 됨 = node 문제
+        else if (srcVer + 0 != APPVER)
+            cause := "old"
+    }
+
+    title := "Outlook (" DATEVER ") v" APPVER
+    if (cause = "old")
+        title .= "  [프로그램 " (srcVer != "" ? "v" srcVer " " : "") "옛버전!]"
+    else if (cause = "node")
+        title .= "  [Node 문제!]"
+    else if (cause = "noprog")
+        title .= "  [프로그램 없음!]"
+    try WinSetTitle(title, "ahk_id " g.Hwnd)
+
+    if (cause = "" || !popup || srcWarned)
+        return
+    srcWarned := true
+    if (cause = "node") {
+        MsgBox("프로그램은 있는데 실행이 되지 않습니다 (Node 문제).`n`n"
+             . "[Update OUTLOOK Bar.bat] 를 한 번 실행해 주세요 — Node 를 자동으로 설치합니다.", "OUTLOOK Bar", 0x30)
+    } else if (cause = "noprog") {
+        MsgBox("프로그램 파일이 없습니다.`n`n"
+             . "[Update OUTLOOK Bar.bat] 를 한 번 실행해 주세요.", "OUTLOOK Bar", 0x30)
+    } else {
+        MsgBox("프로그램 파일이 옛 버전입니다.`n`n"
+             . "바 = v" APPVER " / 프로그램 = " (srcVer != "" ? "v" srcVer : "v22 이전") "`n`n"
+             . "이 상태에서는 새 기능(폴더 선택 등)이 동작하지 않습니다.`n`n"
+             . "[Update OUTLOOK Bar.bat] 를 한 번 실행해 주세요.`n"
+             . "실행해도 그대로면 회사 폴더가 아직 갱신되지 않은 것이니 Brian 에게 알려주세요.", "OUTLOOK Bar", 0x30)
+    }
+}
+
 ; ===== 자동 업데이트 =====
 ; ① 회사 공유 폴더에서 프로그램 파일(src\*.js 등) 최신화  ② GitHub 에서 바 파일 최신화 → 바뀌었으면 재시작
 CheckUpdate(silent := true) {
@@ -502,7 +596,9 @@ CheckUpdate(silent := true) {
     if (last != "" && DateDiff(A_Now, last, "Seconds") < 120)
         return
 
-    RefreshProgram()
+    RefreshProgram()          ; 회사 폴더: config.json·서명 등
+    RefreshSrcFromGitHub()    ; GitHub: 프로그램 파일 (이쪽이 최신 기준)
+    CheckSrcVersion(true)     ; 대조 — 팝업은 srcWarned 로 1회만
 
     remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
     if (remote = "" || StrLen(remote) < 800 || !InStr(remote, "OUTLOOK Desktop Bar") || !InStr(remote, "#Requires AutoHotkey")) {
