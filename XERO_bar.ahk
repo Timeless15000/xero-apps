@@ -8,7 +8,7 @@
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 21                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
+APPVER := 22                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Timeless_App.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
@@ -101,6 +101,24 @@ try {
 }
 
 Build()
+
+; ===== 자동 업로드 (Brian PC 전용) =====
+; 이 바가 관리자 원본 폴더에서 돌 때만, 바뀐 파일을 10분마다 조용히 GitHub 에 올린다.
+; 직원 PC 사본은 GitHub 폴더가 아니므로 절대 실행되지 않는다. 사람이 누를 것은 없다.
+AUTO_PUBLISH := InStr(A_ScriptDir, "GitHub")
+if AUTO_PUBLISH {
+    SetTimer(AutoPublish, -90000)              ; 켠 뒤 1분 30초에 한 번
+    SetTimer(AutoPublish, 10 * 60 * 1000)      ; 이후 10분마다
+}
+
+AutoPublish() {
+    ps := A_ScriptDir "\auto-publish.ps1"
+    if !FileExist(ps)
+        ps := A_ScriptDir "\..\xero-apps\auto-publish.ps1"
+    if !FileExist(ps)
+        return
+    try Run('powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' ps '"', , "Hide")
+}
 
 if AUTO_UPDATE {
     SetTimer(() => CheckUpdate(true), -3000)              ; 켠 뒤 3초 후 1회 확인

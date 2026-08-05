@@ -2,4 +2,4 @@
 // 바가 시작할 때 이 값을 읽어, 바(GitHub 자동 업데이트)와 프로그램 파일(회사 폴더 복사)이
 // 어긋났는지 바로 알려준다 — 예전에는 프로그램이 옛 버전이어도 아무 표시가 없었다.
 // 일부러 config.json 도, 다른 파일도 읽지 않는다 (설치가 망가져도 이 값만은 나와야 하므로).
-process.stdout.write('SRCVER=26\n');
+process.stdout.write('SRCVER=27\n');

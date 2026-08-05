@@ -19,7 +19,7 @@ SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "index.js", "outlook
             , "outlook-read.js", "review-daily.js", "srcver.js", "unflag-server.js", "package.json"]
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 26                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 27                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -76,6 +76,24 @@ try {
 }
 
 Build()
+
+; ===== 자동 업로드 (Brian PC 전용) =====
+; 이 바가 관리자 원본 폴더에서 돌 때만, 바뀐 파일을 10분마다 조용히 GitHub 에 올린다.
+; 직원 PC 사본은 GitHub 폴더가 아니므로 절대 실행되지 않는다. 사람이 누를 것은 없다.
+AUTO_PUBLISH := InStr(A_ScriptDir, "GitHub")
+if AUTO_PUBLISH {
+    SetTimer(AutoPublish, -90000)              ; 켠 뒤 1분 30초에 한 번
+    SetTimer(AutoPublish, 10 * 60 * 1000)      ; 이후 10분마다
+}
+
+AutoPublish() {
+    ps := A_ScriptDir "\auto-publish.ps1"
+    if !FileExist(ps)
+        ps := A_ScriptDir "\..\xero-apps\auto-publish.ps1"
+    if !FileExist(ps)
+        return
+    try Run('powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' ps '"', , "Hide")
+}
 
 if AUTO_UPDATE {
     SetTimer(() => CheckUpdate(true), -4000)              ; 켠 뒤 4초 후 1회
