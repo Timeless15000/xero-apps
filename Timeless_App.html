@@ -325,13 +325,14 @@ else{o.cat=&#x27;ok&#x27;;R.ok.push(o);}
 R.gap.sort(function(a,b){return a.mn-b.mn||b.tot-a.tot;});
 R.late.sort(function(a,b){return b.run-a.run||b.tot-a.tot;});
 R.old.sort(function(a,b){return a.mx-b.mx||b.tot-a.tot;});
+R.ok.sort(function(a,b){return b.tot-a.tot;});
 return R;
 };
 var uniq=function(a){var s={},o=[];for(var i=0;i&lt;a.length;i++){if(!s[a[i]]){s[a[i]]=1;o.push(a[i]);}}return o;};
 var enrich=function(R,cb){
 try{
 if(typeof fetch===&#x27;undefined&#x27;){cb();return;}
-var targets=R.gap.concat(R.late,R.old);
+var targets=R.gap.concat(R.late,R.old,R.ok);
 if(!targets.length){cb();return;}
 var GX=&#x27;[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}&#x27;;
 var sc=null;
@@ -390,16 +391,16 @@ var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;
 +&#x27;.card{background:#fff;border:1px solid #d9dee3;border-radius:4px;padding:10px 16px;min-width:110px}&#x27;
 +&#x27;.card b{display:block;font-size:20px;font-weight:bold}&#x27;
 +&#x27;.card span{color:#666;font-size:12px}&#x27;
-+&#x27;.card.red b{color:#c1272d}.card.or b{color:#e65100}.card.ye b{color:#a07c00}&#x27;
++&#x27;.card.red b{color:#c1272d}.card.or b{color:#e65100}.card.ye b{color:#a07c00}.card.bl b{color:#1266a5}&#x27;
 +&#x27;h2{font-size:15px;margin:26px 0 8px;padding-left:9px;border-left:4px solid #13B5EA}&#x27;
-+&#x27;h2.red{border-color:#c1272d}h2.or{border-color:#e65100}h2.ye{border-color:#c9a400}&#x27;
++&#x27;h2.red{border-color:#c1272d}h2.or{border-color:#e65100}h2.ye{border-color:#c9a400}h2.bl{border-color:#1266a5}&#x27;
 +&#x27;h2 small{color:#777;font-weight:normal;font-size:12px}&#x27;
 +&#x27;table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d9dee3}&#x27;
 +&#x27;th{text-align:left;font-size:12px;color:#555;background:#f7f8f9;border-bottom:2px solid #d9dee3;padding:8px 10px}&#x27;
 +&#x27;td{border-bottom:1px solid #e9edf0;padding:7px 10px;vertical-align:top}&#x27;
 +&#x27;tr.cust td{background:#eef6fb;font-weight:bold;border-top:2px solid #cfe3ef}&#x27;
 +&#x27;.tag{font-weight:bold;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;white-space:nowrap}&#x27;
-+&#x27;.tag.red{background:#c1272d;color:#fff}.tag.or{background:#e65100;color:#fff}.tag.ye{background:#c9a400;color:#fff}&#x27;
++&#x27;.tag.red{background:#c1272d;color:#fff}.tag.or{background:#e65100;color:#fff}.tag.ye{background:#c9a400;color:#fff}.tag.bl{background:#1266a5;color:#fff}&#x27;
 +&#x27;tr.gapr td{color:#2e7d32;font-style:italic;background:#f4faf4}&#x27;
 +&#x27;td.amt,th.amt{text-align:right;white-space:nowrap}&#x27;
 +&#x27;a{color:#1266a5;text-decoration:none}a:hover{text-decoration:underline}&#x27;
@@ -417,7 +418,7 @@ h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
 +&#x27;&lt;div class=&quot;card red&quot;&gt;&lt;b&gt;&#x27;+R.gap.length+&#x27;&lt;/b&gt;&lt;span&gt;Skipped payments&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;div class=&quot;card or&quot;&gt;&lt;b&gt;&#x27;+R.late.length+&#x27;&lt;/b&gt;&lt;span&gt;3+ months behind&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;div class=&quot;card ye&quot;&gt;&lt;b&gt;&#x27;+R.old.length+&#x27;&lt;/b&gt;&lt;span&gt;Old unpaid&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;OK (last 1-2 months, not listed)&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card bl&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;Recent (last 1-2 months)&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;pbar&quot;&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(1)&quot;&gt;Select all&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(0)&quot;&gt;Clear&lt;/button&gt;&lt;button class=&quot;pbtn&quot; id=&quot;xpdfgo&quot; onclick=&quot;xpdfGo()&quot;&gt;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&lt;/button&gt;&lt;span id=&quot;xpdfmsg&quot; style=&quot;font-size:12px;color:#666&quot;&gt;tick invoices below - each downloads as its own PDF&lt;/span&gt;&lt;/div&gt;&#x27;;
 var refHtml=function(r){var e=esc(r);return e.replace(/^(\s*)(ww)/i,&#x27;$1&lt;span style=&quot;color:#c1272d;font-weight:bold&quot;&gt;$2&lt;/span&gt;&#x27;);};
@@ -443,8 +444,9 @@ h+=&#x27;&lt;/tbody&gt;&lt;/table&gt;&#x27;;};
 section(R.gap,&#x27;red&#x27;,&#x27;Skipped payments&#x27;,&#x27;unpaid month(s) followed by paid months - the customer likely missed an invoice&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
 section(R.late,&#x27;or&#x27;,&#x27;3+ months behind&#x27;,&#x27;consecutive unpaid months up to now&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
 section(R.old,&#x27;ye&#x27;,&#x27;Old unpaid - needs review&#x27;,&#x27;no newer invoice in the list after the last unpaid month (service ended? paid since?)&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
-if(!R.gap.length&amp;&amp;!R.late.length&amp;&amp;!R.old.length)h+=&#x27;&lt;p class=&quot;none&quot;&gt;No problem customers found - everyone is within the last 1-2 months.&lt;/p&gt;&#x27;;
-h+=&#x27;&lt;p class=&quot;ft&quot;&gt;Generated from the Awaiting Payment list by Payment Review. Customers with only the last 1-2 months unpaid (&#x27;+R.ok.length+&#x27;) are treated as OK and not listed.&lt;/p&gt;&#x27;;
+section(R.ok,&#x27;bl&#x27;,&#x27;Recent unpaid&#x27;,&#x27;unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
+if(!R.gap.length&amp;&amp;!R.late.length&amp;&amp;!R.old.length&amp;&amp;!R.ok.length)h+=&#x27;&lt;p class=&quot;none&quot;&gt;No unpaid invoices found.&lt;/p&gt;&#x27;;
+h+=&#x27;&lt;p class=&quot;ft&quot;&gt;Generated from the Awaiting Payment list by Payment Review. Every overdue invoice is listed - including customers with only the last 1-2 months unpaid (&#x27;+R.ok.length+&#x27;).&lt;/p&gt;&#x27;;
 h+=&#x27;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;script&gt;&#x27;
 +&#x27;var XORG=&quot;https://go.xero.com&quot;;&#x27;

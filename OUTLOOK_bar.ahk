@@ -14,7 +14,7 @@ ini := A_ScriptDir "\OUTLOOK_bar.ini"
 UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 21                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 22                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -48,6 +48,9 @@ checks := Map()
 pickBox := ""
 pickMap := Map()
 items := []
+tipG := ""          ; 로딩 상태창 (바 밑에 붙어 같이 움직인다)
+stickyMsg := ""     ; 작업이 끝날 때까지 유지할 메시지
+tipSeq := 0
 
 ; 첫 실행 시 바탕화면에 "OUTLOOK Bar" 아이콘 자동 생성
 try {
@@ -225,9 +228,9 @@ RunTool(id, *) {
 PickMailboxFlow() {
     global pickBox, pickMap
     r := Map("ok", 0, "box", "")
-    Tip("사서함 목록 확인 중...", 20000)
+    Tip("사서함 목록 확인 중...", 0)
     out := CaptureNode(' /c node "src\index.js" --list-mailboxes')
-    ToolTip()
+    HideTip()
 
     cur := ""
     if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
@@ -307,17 +310,9 @@ RunReviewDaily(mailbox := "") {
             return
         box := r["box"]
     }
-    busy := true
     EnvSet("OBAR_MBOXPICK", box)
-    Tip("Review Daily 생성 중" (box != "" ? " (" box ")" : "") "... (10~30초, 완료되면 브라우저가 열립니다)", 60000)
-    ec := RunWait(A_ComSpec ' /c node "src\index.js" --review-daily', A_ScriptDir, "Hide")
-    ToolTip()
-    busy := false
-    if (ec = 9009) {
-        MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-    } else if (ec != 0) {
-        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- Outlook 이 켜져 있어야 합니다.`n- 방금 Outlook 을 켰다면 잠시 뒤 다시 눌러주세요.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
-    }
+    RunNodeShow(' /c node "src\index.js" --review-daily',
+        "Review Daily 생성 중" (box != "" ? " (" box ")" : "") "... (10~30초, 완료되면 브라우저가 열립니다)")
 }
 
 RunFlaggedSummary(mailbox := "") {
@@ -342,9 +337,9 @@ RunFlaggedSummary(mailbox := "") {
     ; ---- 폴더 선택: Inbox 하위 폴더가 있으면 전체/일부를 골라 요약한다 ----
     ; 한글 사서함·폴더 이름이 명령줄에서 깨지지 않도록 사서함은 환경변수로 전달
     EnvSet("OBAR_MBOXPICK", box)
-    Tip("폴더 목록 확인 중...", 20000)
+    Tip("폴더 목록 확인 중...", 0)
     fout := CaptureNode(' /c node "src\index.js" --list-folders')
-    ToolTip()
+    HideTip()
     fspecs := []
     fdisps := []
     pos := 1
@@ -353,8 +348,23 @@ RunFlaggedSummary(mailbox := "") {
         fspecs.Push(fm[1])
         fdisps.Push(Trim(fm[2], " `t"))
     }
-    if (fspecs.Length <= 1) {
-        StartSummary(box, [])   ; 하위 폴더 없음 - 기존처럼 Inbox만
+    if (fspecs.Length = 0) {
+        ; 정상이라면 최소한 Inbox 한 줄은 온다 — 아무것도 없으면 폴더 목록 실패.
+        ; 조용히 Inbox만 요약하지 말고 원인을 알려준다 (하위 폴더를 건너뛰는 문제의 원인 표시)
+        ferr := ""
+        if RegExMatch(fout, "m)^ERR=([^\r\n]*)", &fe)
+            ferr := Trim(fe[1], " `t")
+        if (ferr != "")
+            fmsg := "폴더 목록을 읽지 못했습니다.`n(" ferr ")`n`n하위 폴더 없이 Inbox만 요약할까요?"
+        else
+            fmsg := "폴더 목록을 확인하지 못했습니다.`n프로그램 파일이 옛 버전이거나 설치가 불완전할 수 있습니다.`n`n[Update OUTLOOK Bar.bat] 를 한 번 실행하면 최신으로 맞춰집니다.`n`n일단 Inbox만 요약할까요?"
+        if (MsgBox(fmsg, "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
+            return
+        StartSummary(box, [])
+        return
+    }
+    if (fspecs.Length = 1) {
+        StartSummary(box, [])   ; 하위 폴더 없음 - Inbox만 (정상)
         return
     }
     ShowFolderPick(box, fspecs, fdisps)
@@ -409,8 +419,6 @@ FpGo(box, fspecs, cbs, *) {
 
 ; 실제 리포트 생성 실행 (sel: 폴더 spec 배열, 비면 Inbox만)
 StartSummary(box, sel) {
-    global busy
-    busy := true
     EnvSet("OBAR_MBOXPICK", box)
     cmd := ' /c node "src\index.js" --flagged-summary'
     if (sel.Length > 0) {
@@ -424,15 +432,49 @@ StartSummary(box, sel) {
             cmd .= ' --folders-file "' tmp '"'
         }
     }
-    Tip("Flagged Summary 생성 중" (box != "" ? " (" box ")" : "") (sel.Length > 1 ? " - 폴더 " sel.Length "개" : "") "... (10~60초, 완료되면 브라우저가 열립니다)", 60000)
-    ec := RunWait(A_ComSpec cmd, A_ScriptDir, "Hide")
-    ToolTip()
+    RunNodeShow(cmd, "Flagged Summary 생성 중" (box != "" ? " (" box ")" : "") (sel.Length > 1 ? " - 폴더 " sel.Length "개" : "") "... (10~60초, 완료되면 브라우저가 열립니다)")
+}
+
+; node 실행 공통 — 로딩 표시를 유지하고, 실패하면 출력 마지막 줄(실제 원인)을 그대로 보여준다
+RunNodeShow(cmd, waitMsg) {
+    global busy
+    busy := true
+    Tip(waitMsg, 0)
+    otmp := A_Temp "\outlookbar_run.txt"
+    try FileDelete(otmp)
+    ec := RunWait(A_ComSpec cmd ' > "' otmp '" 2>&1', A_ScriptDir, "Hide")
+    HideTip()
     busy := false
+    if (ec = 0)
+        return
     if (ec = 9009) {
-        MsgBox("Node.js가 설치되어 있지 않습니다.`n`nhttps://nodejs.org 에서 LTS 버전을 설치한 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-    } else if (ec != 0) {
-        MsgBox("리포트 생성에 실패했습니다 (코드 " ec ").`n`n- Outlook 이 켜져 있어야 합니다 (메일은 Outlook 에서 직접 읽습니다).`n- 방금 Outlook 을 켰다면 잠시 뒤 다시 눌러주세요.`n- 자세한 내용은 log.txt 를 확인하세요.", "OUTLOOK Bar", 0x30)
+        MsgBox("Node.js가 설치되어 있지 않습니다.`n`n[Update OUTLOOK Bar.bat] 를 한 번 실행하면 자동으로 설치됩니다.", "OUTLOOK Bar", 0x30)
+        return
     }
+    detail := ""
+    try {
+        raw := FileRead(otmp, "UTF-8")
+        keep := []
+        for l in StrSplit(raw, "`n", "`r") {
+            t := Trim(l, " `t")
+            if (t != "")
+                keep.Push(t)
+        }
+        i := keep.Length - 5
+        if (i < 1)
+            i := 1
+        while (i <= keep.Length) {
+            detail .= keep[i] "`n"
+            i += 1
+        }
+        if (StrLen(detail) > 700)
+            detail := SubStr(detail, -700)
+    }
+    emsg := "리포트 생성에 실패했습니다 (코드 " ec ")."
+    if (detail != "")
+        emsg .= "`n`n[원인]`n" detail
+    emsg .= "`n- Outlook 이 켜져 있어야 합니다 (메일은 Outlook 에서 직접 읽습니다).`n- 방금 Outlook 을 켰다면 잠시 뒤 다시 눌러주세요."
+    MsgBox(emsg, "OUTLOOK Bar", 0x30)
 }
 
 PickMailbox(name, pos, mnu) {
@@ -526,7 +568,86 @@ NormTxt(s) {
     return Trim(s, " `t`n")
 }
 
+; ===== 로딩/알림 표시 =====
+; 마우스 위치에 고정되던 ToolTip 대신, 바 바로 밑에 붙는 노란 상태창을 쓴다.
+; 바를 옮기면 같이 따라오고(150ms), dur=0 이면 HideTip() 할 때까지 계속 보인다.
 Tip(msg, dur := 2500) {
-    ToolTip(msg)
-    SetTimer(() => ToolTip(), -dur)
+    global stickyMsg, tipSeq
+    tipSeq += 1
+    if (dur <= 0) {
+        stickyMsg := msg
+        ShowTipWin(msg)
+        return
+    }
+    ShowTipWin(msg)
+    SetTimer(TipExpire.Bind(tipSeq), -dur)
+}
+
+TipExpire(seq) {
+    global tipSeq, stickyMsg
+    if (seq != tipSeq)
+        return
+    if (stickyMsg != "")
+        ShowTipWin(stickyMsg)   ; 잠깐 알림이 끝나면 진행 중 메시지로 복귀
+    else
+        HideTip()
+}
+
+ShowTipWin(msg) {
+    global tipG, scale, g
+    try {
+        if IsObject(tipG)
+            tipG.Destroy()
+    }
+    fs := Round(11 * scale)
+    if (fs < 10)
+        fs := 10
+    tipG := Gui("+AlwaysOnTop -Caption +ToolWindow +Border", "OutlookBarTip")
+    tipG.BackColor := "FFD54A"
+    tipG.MarginX := 12
+    tipG.MarginY := 8
+    tipG.SetFont("s" fs " Bold", "Segoe UI")
+    tipG.Add("Text", "c202020", msg)
+    bx := 0
+    by := 0
+    bw := 0
+    bh := 0
+    try WinGetPos(&bx, &by, &bw, &bh, "ahk_id " g.Hwnd)
+    tipG.Show("x" bx " y" (by + bh + 4) " NoActivate")
+    PlaceTip()
+    SetTimer(PlaceTip, 150)
+}
+
+; 상태창을 바 바로 밑 가운데에 붙인다 (바가 움직이면 타이머가 계속 따라붙게)
+PlaceTip() {
+    global g, tipG
+    if !IsObject(tipG) {
+        SetTimer(PlaceTip, 0)
+        return
+    }
+    try {
+        WinGetPos(&bx, &by, &bw, &bh, "ahk_id " g.Hwnd)
+        WinGetPos(, , &tw, &th, "ahk_id " tipG.Hwnd)
+        nx := bx + (bw - tw) // 2
+        if (nx < 0)
+            nx := 0
+        ny := by + bh + 4
+        if (ny + th > A_ScreenHeight - 4)
+            ny := by - th - 4
+        WinMove(nx, ny, , , "ahk_id " tipG.Hwnd)
+    } catch {
+        SetTimer(PlaceTip, 0)
+    }
+}
+
+HideTip() {
+    global tipG, stickyMsg, tipSeq
+    tipSeq += 1
+    stickyMsg := ""
+    SetTimer(PlaceTip, 0)
+    try {
+        if IsObject(tipG)
+            tipG.Destroy()
+    }
+    tipG := ""
 }
