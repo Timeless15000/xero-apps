@@ -235,7 +235,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,'1');
 location.href=items[0].u;
 }catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"autocheckapprove",t:"IC App 1 page",c:"rgb(123, 31, 162)",run:function(){try{(function(){try{window.__xchkMode='appr';var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i<A.length;i++){if(A[i].k==='autocheckall'){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert('XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.');}}catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"autocheckapproveall",t:"IC App ALL pages",c:"rgb(156, 39, 176)",run:function(){try{(function(){try{window.__xchkMode='appr';window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i<A.length;i++){if(A[i].k==='autocheckall'){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert('XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.');}}catch(e){alert('Error: '+e.message);}})()}catch(e){alert("Error: "+e.message);}}});TOOLS.push({k:"paymentreview",t:"Payment Review",c:"rgb(183, 28, 28)",run:function(){try{(function(){try{
-var PRBUILD='B3';   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
+var PRBUILD='B4';   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ='xpay_q',LSR='xpay_run';
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||'null');}catch(_e){}
 var running=(localStorage.getItem(LSR)==='1');
@@ -411,11 +411,12 @@ var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Review</t
 h+='<div class="hd"><div class="t">Payment Review <span style="font-size:12px;opacity:.75">['+PRBUILD+']</span>'+(stopped?' (stopped - partial results)':'')+'</div><small>'+new Date().toLocaleString()+' · Awaiting Payment · '+(st.rf&&st.rf.length?'Ref: '+st.rf.join(', ')+' · ':'')+(st.pg>1?st.pg+' pages · ':'')+st.rows.length+' invoices · '+R.tot+' customers</small></div>';
 h+='<div class="wrap">';
 h+='<div class="sum">'
-+'<div class="card"><b>$'+fmt(R.due)+'</b><span>Total outstanding</span></div>'
-+'<div class="card red"><b>'+R.gap.length+'</b><span>Skipped payments</span></div>'
-+'<div class="card or"><b>'+R.late.length+'</b><span>3+ months behind</span></div>'
-+'<div class="card ye"><b>'+R.old.length+'</b><span>Old unpaid</span></div>'
-+'<div class="card bl"><b>'+R.ok.length+'</b><span>Recent (last 1-2 months)</span></div>'
++'<div class="card"><b>'+st.rows.length+'</b><span>Total No of Invoices</span></div>'
++'<div class="card"><b>$'+fmt(R.due)+'</b><span>Total Outstanding</span></div>'
++'<div class="card red"><b>'+R.gap.length+'</b><span>Skipped Payment</span></div>'
++'<div class="card or"><b>'+R.late.length+'</b><span>3+ months</span></div>'
++'<div class="card ye"><b>'+R.old.length+'</b><span>2+ months</span></div>'
++'<div class="card bl"><b>'+R.ok.length+'</b><span>Recent</span></div>'
 +'</div>';
 h+='<div class="pbar"><button class="psel" onclick="xpdfSel(1)">Select all</button><button class="psel" onclick="xpdfSel(0)">Clear</button><button class="pbtn" id="xpdfgo" onclick="xpdfGo()">Download PDFs (<span id=xpdfn>0</span>)</button><span id="xpdfmsg" style="font-size:12px;color:#666">tick invoices below - each downloads as its own PDF</span></div>';
 var odHtml=function(d){if(d==null)return '';var c=d>=90?'od3':(d>=30?'od2':'od1');return '<span class="'+c+'">'+d+' days</span>';};
@@ -439,10 +440,10 @@ h+='<h2 class="'+cls+'">'+title+' ('+list.length+') <small>'+sub+'</small></h2>'
 h+='<table><thead><tr><th style="width:86px">Month</th><th style="width:120px">Invoice</th><th>Reference</th><th style="width:110px">Date</th><th style="width:96px">Overdue by</th><th class="amt" style="width:110px">Due AUD</th></tr></thead><tbody>';
 list.forEach(function(o){var fu=o.cu||(o.arr.filter(function(x){return x.u;})[0]||{}).u;var op=fu?' <a href="'+esc(fu)+'" target="_blank" style="font-size:11px">open in Xero &#8599;</a>':'';h+='<tr class="cust"><td colspan="5">'+esc(o.c)+' <span class="tag '+cls+'">'+tagf(o)+'</span>'+op+'</td><td class="amt">'+fmt(o.tot)+'</td></tr>'+rowsFor(o);});
 h+='</tbody></table>';};
-section(R.gap,'red','Skipped payments','unpaid month(s) followed by paid months - the customer likely missed an invoice',function(o){return 'first unpaid '+mtxt(o.mn);});
-section(R.late,'or','3+ months behind','consecutive unpaid months up to now',function(o){return o.run+' months in a row';});
-section(R.old,'ye','Old unpaid - needs review','no newer invoice in the list after the last unpaid month (service ended? paid since?)',function(o){return 'last unpaid '+mtxt(o.keys[o.keys.length-1])+' ('+o.ago+' mo ago)';});
-section(R.ok,'bl','Recent unpaid','unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible',function(o){return (o.run||1)+' mo unpaid';});
+section(R.gap,'red','Skipped Payment','unpaid month(s) followed by paid months - the customer likely missed an invoice',function(o){return 'first unpaid '+mtxt(o.mn);});
+section(R.late,'or','3+ months','consecutive unpaid months up to now',function(o){return o.run+' months in a row';});
+section(R.old,'ye','2+ months','no newer invoice in the list after the last unpaid month (service ended? paid since?)',function(o){return 'last unpaid '+mtxt(o.keys[o.keys.length-1])+' ('+o.ago+' mo ago)';});
+section(R.ok,'bl','Recent','unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible',function(o){return (o.run||1)+' mo unpaid';});
 if(!R.gap.length&&!R.late.length&&!R.old.length&&!R.ok.length)h+='<p class="none">No unpaid invoices found.</p>';
 h+='<p class="ft">Generated from the Awaiting Payment list by Payment Review. Every overdue invoice is listed - including customers with only the last 1-2 months unpaid ('+R.ok.length+').</p>';
 h+='</div>';

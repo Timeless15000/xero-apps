@@ -242,7 +242,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,&#x27;1&#x27;);
 location.href=items[0].u;
 }catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="31/07/26" style="background:#B71C1C" href="javascript:(function(){try{
-var PRBUILD=&#x27;B3&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
+var PRBUILD=&#x27;B4&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ=&#x27;xpay_q&#x27;,LSR=&#x27;xpay_run&#x27;;
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}
 var running=(localStorage.getItem(LSR)===&#x27;1&#x27;);
@@ -418,11 +418,12 @@ var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;
 h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review &lt;span style=&quot;font-size:12px;opacity:.75&quot;&gt;[&#x27;+PRBUILD+&#x27;]&lt;/span&gt;&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.rf&amp;&amp;st.rf.length?&#x27;Ref: &#x27;+st.rf.join(&#x27;, &#x27;)+&#x27; · &#x27;:&#x27;&#x27;)+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;wrap&quot;&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
-+&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;$&#x27;+fmt(R.due)+&#x27;&lt;/b&gt;&lt;span&gt;Total outstanding&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card red&quot;&gt;&lt;b&gt;&#x27;+R.gap.length+&#x27;&lt;/b&gt;&lt;span&gt;Skipped payments&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card or&quot;&gt;&lt;b&gt;&#x27;+R.late.length+&#x27;&lt;/b&gt;&lt;span&gt;3+ months behind&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card ye&quot;&gt;&lt;b&gt;&#x27;+R.old.length+&#x27;&lt;/b&gt;&lt;span&gt;Old unpaid&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card bl&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;Recent (last 1-2 months)&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;&#x27;+st.rows.length+&#x27;&lt;/b&gt;&lt;span&gt;Total No of Invoices&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;$&#x27;+fmt(R.due)+&#x27;&lt;/b&gt;&lt;span&gt;Total Outstanding&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card red&quot;&gt;&lt;b&gt;&#x27;+R.gap.length+&#x27;&lt;/b&gt;&lt;span&gt;Skipped Payment&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card or&quot;&gt;&lt;b&gt;&#x27;+R.late.length+&#x27;&lt;/b&gt;&lt;span&gt;3+ months&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card ye&quot;&gt;&lt;b&gt;&#x27;+R.old.length+&#x27;&lt;/b&gt;&lt;span&gt;2+ months&lt;/span&gt;&lt;/div&gt;&#x27;
++&#x27;&lt;div class=&quot;card bl&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;Recent&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;div class=&quot;pbar&quot;&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(1)&quot;&gt;Select all&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(0)&quot;&gt;Clear&lt;/button&gt;&lt;button class=&quot;pbtn&quot; id=&quot;xpdfgo&quot; onclick=&quot;xpdfGo()&quot;&gt;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&lt;/button&gt;&lt;span id=&quot;xpdfmsg&quot; style=&quot;font-size:12px;color:#666&quot;&gt;tick invoices below - each downloads as its own PDF&lt;/span&gt;&lt;/div&gt;&#x27;;
 var odHtml=function(d){if(d==null)return &#x27;&#x27;;var c=d&gt;=90?&#x27;od3&#x27;:(d&gt;=30?&#x27;od2&#x27;:&#x27;od1&#x27;);return &#x27;&lt;span class=&quot;&#x27;+c+&#x27;&quot;&gt;&#x27;+d+&#x27; days&lt;/span&gt;&#x27;;};
@@ -446,10 +447,10 @@ h+=&#x27;&lt;h2 class=&quot;&#x27;+cls+&#x27;&quot;&gt;&#x27;+title+&#x27; (&#x2
 h+=&#x27;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th style=&quot;width:86px&quot;&gt;Month&lt;/th&gt;&lt;th style=&quot;width:120px&quot;&gt;Invoice&lt;/th&gt;&lt;th&gt;Reference&lt;/th&gt;&lt;th style=&quot;width:110px&quot;&gt;Date&lt;/th&gt;&lt;th style=&quot;width:96px&quot;&gt;Overdue by&lt;/th&gt;&lt;th class=&quot;amt&quot; style=&quot;width:110px&quot;&gt;Due AUD&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;;
 list.forEach(function(o){var fu=o.cu||(o.arr.filter(function(x){return x.u;})[0]||{}).u;var op=fu?&#x27; &lt;a href=&quot;&#x27;+esc(fu)+&#x27;&quot; target=&quot;_blank&quot; style=&quot;font-size:11px&quot;&gt;open in Xero &amp;#8599;&lt;/a&gt;&#x27;:&#x27;&#x27;;h+=&#x27;&lt;tr class=&quot;cust&quot;&gt;&lt;td colspan=&quot;5&quot;&gt;&#x27;+esc(o.c)+&#x27; &lt;span class=&quot;tag &#x27;+cls+&#x27;&quot;&gt;&#x27;+tagf(o)+&#x27;&lt;/span&gt;&#x27;+op+&#x27;&lt;/td&gt;&lt;td class=&quot;amt&quot;&gt;&#x27;+fmt(o.tot)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;+rowsFor(o);});
 h+=&#x27;&lt;/tbody&gt;&lt;/table&gt;&#x27;;};
-section(R.gap,&#x27;red&#x27;,&#x27;Skipped payments&#x27;,&#x27;unpaid month(s) followed by paid months - the customer likely missed an invoice&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
-section(R.late,&#x27;or&#x27;,&#x27;3+ months behind&#x27;,&#x27;consecutive unpaid months up to now&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
-section(R.old,&#x27;ye&#x27;,&#x27;Old unpaid - needs review&#x27;,&#x27;no newer invoice in the list after the last unpaid month (service ended? paid since?)&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
-section(R.ok,&#x27;bl&#x27;,&#x27;Recent unpaid&#x27;,&#x27;unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
+section(R.gap,&#x27;red&#x27;,&#x27;Skipped Payment&#x27;,&#x27;unpaid month(s) followed by paid months - the customer likely missed an invoice&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
+section(R.late,&#x27;or&#x27;,&#x27;3+ months&#x27;,&#x27;consecutive unpaid months up to now&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
+section(R.old,&#x27;ye&#x27;,&#x27;2+ months&#x27;,&#x27;no newer invoice in the list after the last unpaid month (service ended? paid since?)&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
+section(R.ok,&#x27;bl&#x27;,&#x27;Recent&#x27;,&#x27;unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
 if(!R.gap.length&amp;&amp;!R.late.length&amp;&amp;!R.old.length&amp;&amp;!R.ok.length)h+=&#x27;&lt;p class=&quot;none&quot;&gt;No unpaid invoices found.&lt;/p&gt;&#x27;;
 h+=&#x27;&lt;p class=&quot;ft&quot;&gt;Generated from the Awaiting Payment list by Payment Review. Every overdue invoice is listed - including customers with only the last 1-2 months unpaid (&#x27;+R.ok.length+&#x27;).&lt;/p&gt;&#x27;;
 h+=&#x27;&lt;/div&gt;&#x27;;
