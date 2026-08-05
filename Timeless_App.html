@@ -242,7 +242,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,&#x27;1&#x27;);
 location.href=items[0].u;
 }catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="31/07/26" style="background:#B71C1C" href="javascript:(function(){try{
-var PRBUILD=&#x27;B6&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
+var PRBUILD=&#x27;B7&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ=&#x27;xpay_q&#x27;,LSR=&#x27;xpay_run&#x27;;
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}
 var running=(localStorage.getItem(LSR)===&#x27;1&#x27;);
@@ -426,8 +426,17 @@ h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
 +&#x27;&lt;div class=&quot;card ye&quot;&gt;&lt;b&gt;&#x27;+R.old.length+&#x27;&lt;/b&gt;&lt;span&gt;2+ months&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;div class=&quot;card bl&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;Recent&lt;/span&gt;&lt;/div&gt;&#x27;
 +&#x27;&lt;/div&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;pbar&quot;&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(1)&quot;&gt;Select all&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(0)&quot;&gt;Clear&lt;/button&gt;&lt;button class=&quot;pbtn&quot; id=&quot;xpdfgo&quot; onclick=&quot;xpdfGo()&quot;&gt;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&lt;/button&gt;&lt;span id=&quot;xpdfmsg&quot; style=&quot;font-size:12px;color:#666&quot;&gt;tick invoices below - each downloads as its own PDF&lt;/span&gt;&lt;/div&gt;&#x27;;
+h+=&#x27;&lt;div class=&quot;pbar&quot;&gt;&lt;button class=&quot;pbtn&quot; style=&quot;background:#1D6F42&quot; onclick=&quot;xcsv()&quot;&gt;Excel&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(1)&quot;&gt;Select all&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(0)&quot;&gt;Clear&lt;/button&gt;&lt;button class=&quot;pbtn&quot; id=&quot;xpdfgo&quot; onclick=&quot;xpdfGo()&quot;&gt;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&lt;/button&gt;&lt;span id=&quot;xpdfmsg&quot; style=&quot;font-size:12px;color:#666&quot;&gt;tick invoices below - each downloads as its own PDF&lt;/span&gt;&lt;/div&gt;&#x27;;
 var odHtml=function(d){if(d==null)return &#x27;&#x27;;var c=d&gt;=90?&#x27;od3&#x27;:(d&gt;=30?&#x27;od2&#x27;:&#x27;od1&#x27;);return &#x27;&lt;span class=&quot;&#x27;+c+&#x27;&quot;&gt;&#x27;+d+&#x27; days&lt;/span&gt;&#x27;;};
+var csvEsc=function(v){var s=String(v==null?&#x27;&#x27;:v);return /[&quot;,\n\r]/.test(s)?&#x27;&quot;&#x27;+s.replace(/&quot;/g,&#x27;&quot;&quot;&#x27;)+&#x27;&quot;&#x27;:s;};
+var csvOf=function(R){
+var rows=[[&#x27;Section&#x27;,&#x27;Customer&#x27;,&#x27;Status&#x27;,&#x27;Month&#x27;,&#x27;Invoice&#x27;,&#x27;Reference&#x27;,&#x27;Date&#x27;,&#x27;Overdue days&#x27;,&#x27;Due AUD&#x27;]];
+var add=function(list,name,tagf){list.forEach(function(o){var tg=tagf(o);o.arr.slice().sort(function(a,b){if(a.d!==b.d)return a.d-b.d;var da=pdate(a.dt),db=pdate(b.dt);if(da&amp;&amp;db&amp;&amp;da-db)return da-db;return (a.n||&#x27;&#x27;)&lt;(b.n||&#x27;&#x27;)?-1:1;}).forEach(function(it){rows.push([name,o.c,tg,mtxt(it.d),it.n||&#x27;&#x27;,it.r||&#x27;&#x27;,it.dt||&#x27;&#x27;,(it.od==null?&#x27;&#x27;:it.od),it.a.toFixed(2)]);});});};
+add(R.gap,&#x27;Skipped Payment&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
+add(R.late,&#x27;3+ months&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
+add(R.old,&#x27;2+ months&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
+add(R.ok,&#x27;Recent&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
+return &#x27;\ufeff&#x27;+rows.map(function(r){return r.map(csvEsc).join(&#x27;,&#x27;);}).join(&#x27;\r\n&#x27;);};
 var refHtml=function(r){var e=esc(r);return e.replace(/^(\s*)(ww)/i,&#x27;$1&lt;span style=&quot;color:#c1272d;font-weight:bold&quot;&gt;$2&lt;/span&gt;&#x27;);};
 var ckb=function(it){var m=String(it.u||&#x27;&#x27;).match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);return m?&#x27;&lt;input type=&quot;checkbox&quot; class=&quot;pdfck&quot; data-id=&quot;&#x27;+m[0]+&#x27;&quot; data-num=&quot;&#x27;+esc(it.n||(&#x27;INV_&#x27;+m[0].slice(0,8)))+&#x27;&quot;&gt;&#x27;:&#x27;&#x27;;};
 var rowsFor=function(o){
@@ -456,6 +465,8 @@ if(!R.gap.length&amp;&amp;!R.late.length&amp;&amp;!R.old.length&amp;&amp;!R.ok.l
 h+=&#x27;&lt;p class=&quot;ft&quot;&gt;Generated from the Awaiting Payment list by Payment Review. Every overdue invoice is listed - including customers with only the last 1-2 months unpaid (&#x27;+R.ok.length+&#x27;).&lt;/p&gt;&#x27;;
 h+=&#x27;&lt;/div&gt;&#x27;;
 h+=&#x27;&lt;script&gt;&#x27;
++&#x27;var CSVTXT=&#x27;+JSON.stringify(csvOf(R))+&#x27;;&#x27;
++&#x27;function xcsv(){var b=new Blob([CSVTXT],{type:&quot;text/csv;charset=utf-8&quot;});var a=document.createElement(&quot;a&quot;);a.href=URL.createObjectURL(b);a.download=&quot;Payment_Review_&#x27;+ts()+&#x27;.csv&quot;;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(e){}},1500);}&#x27;
 +&#x27;var XORG=&quot;https://go.xero.com&quot;;&#x27;
 +&#x27;function xpdfAll(){return [].slice.call(document.querySelectorAll(&quot;.pdfck&quot;));}&#x27;
 +&#x27;function xpdfSel(v){xpdfAll().forEach(function(c){c.checked=!!v;});xpdfCnt();}&#x27;

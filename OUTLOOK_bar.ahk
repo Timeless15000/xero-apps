@@ -19,7 +19,7 @@ SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "index.js", "outlook
             , "outlook-read.js", "review-daily.js", "srcver.js", "unflag-server.js", "package.json"]
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 25                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 26                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -615,14 +615,17 @@ CheckSrcVersion(popup := false) {
 ; ① 회사 공유 폴더에서 프로그램 파일(src\*.js 등) 최신화  ② GitHub 에서 바 파일 최신화 → 바뀌었으면 재시작
 CheckUpdate(silent := true, force := false) {
     global UPDATE_URL, ini, APPVER
+    ; 프로그램 파일(src) 동기화는 쿨다운과 상관없이 항상 먼저 한다.
+    ; (예전: 바가 새 버전으로 바뀌며 재시작하면 2분 쿨다운에 걸려 src 를 못 받고
+    ;  2시간 뒤에나 받았다 → "새 바 + 옛 프로그램" 상태로 폴더 목록이 실패했다)
+    RefreshProgram()               ; 회사 폴더: config.json·서명 등
+    srcN := RefreshSrcFromGitHub() ; GitHub: 프로그램 파일 (이쪽이 최신 기준)
+    CheckSrcVersion(true)          ; 대조 — 팝업은 srcWarned 로 1회만
+
     ; UPDATE 버튼으로 직접 누른 경우(force) 2분 쿨다운을 무시한다
     last := IniRead(ini, "update", "lastreload", "")
     if (!force && last != "" && DateDiff(A_Now, last, "Seconds") < 120)
         return
-
-    RefreshProgram()               ; 회사 폴더: config.json·서명 등
-    srcN := RefreshSrcFromGitHub() ; GitHub: 프로그램 파일 (이쪽이 최신 기준)
-    CheckSrcVersion(true)          ; 대조 — 팝업은 srcWarned 로 1회만
 
     remote := HttpGet(UPDATE_URL "?v=" A_TickCount)
     if (remote = "" || StrLen(remote) < 800 || !InStr(remote, "OUTLOOK Desktop Bar") || !InStr(remote, "#Requires AutoHotkey")) {
