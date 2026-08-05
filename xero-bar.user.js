@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XERO bar
 // @namespace    xero-tools
-// @version      2026.08.05.0400
+// @version      2026.08.05.0500
 // @description  Always-latest loader for the XERO bar tools. Shows the bar INSTANTLY from a local cache, then refreshes the code in the background so the next page load has the newest version. Staff never reinstall or wait.
 // @author       Timeless
 // @match        https://go.xero.com/*
@@ -43,6 +43,11 @@
     console.error('[XERO bar] GM_xmlhttpRequest unavailable - please update Tampermonkey and re-install the loader.');
     return;
   }
+
+  // 도구 코드가 로더의 나이를 확인할 수 있도록 버전을 남긴다.
+  // 로더가 옛날이면 도구 코드가 바에 '업데이트 필요' 버튼을 띄운다 (조용히 옛 코드가 도는 일 방지).
+  var LOADER_VER = '2026.08.05.0500';
+  try { window.__xbarLoaderVer = LOADER_VER; } catch (e) {}
 
   var hasGM = (typeof GM_getValue === 'function' && typeof GM_setValue === 'function');
   var ran = false;   // has the bar code been executed on this page yet?
