@@ -57,18 +57,46 @@ var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/<
 var dl=function(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},1500);};
 var ts=function(){var d=new Date(),z=function(n){return ('0'+n).slice(-2);};return z(d.getDate())+'-'+z(d.getMonth()+1)+'-'+String(d.getFullYear()).slice(-2)+'_'+z(d.getHours())+z(d.getMinutes());};
 var safe=function(s){return String(s||'').replace(/[^A-Za-z0-9가-힣 ._-]+/g,' ').replace(/\s+/g,' ').trim().slice(0,40)||'invoice';};
+var ACBUILD='A2';
 var report=function(st,stopped){try{
 var res=(st&&st.res)||[];var qn=(st&&st.q&&st.q.length)||0;
+var hasG=(typeof GM_getValue==='function');var imgs={};
+if(hasG){res.forEach(function(r){if(r.img){var d='';try{d=GM_getValue('xchk_img_'+r.n,'')||'';}catch(_e){}if(d)imgs[r.n]=d;}});}
 var fl=res.filter(function(r){return r.flag;});var er=res.filter(function(r){return r.err;});var ck=res.filter(function(r){return r.chk&&!r.flag;});var sk=res.filter(function(r){return r.skip;});
 var h='<!DOCTYPE html><html><head><meta charset="utf-8"><title>XERO Auto Check Report</title><style>body{font:13px/1.5 Arial;margin:20px;max-width:920px}h1{font-size:18px}h3{margin:18px 0 6px}.c{border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:10px 0}.f{border-color:#c62828;background:#fff5f5}.k{border-color:#e0a800;background:#fffbe8}.e{border-color:#888;background:#f2f2f2}pre{white-space:pre-wrap;font:12px/1.5 Consolas,monospace;background:#f6f8fa;padding:8px;border-radius:6px;margin:6px 0}a{color:#1565c0}</style></head><body>';
-h+='<h1>XERO Auto Check '+(stopped?'(중지됨) ':'')+'- '+new Date().toLocaleString()+'</h1>';
+h+='<h1>XERO Auto Check <span style="font-size:12px;color:#999">['+ACBUILD+']</span> '+(stopped?'(중지됨) ':'')+'- '+new Date().toLocaleString()+'</h1>';
 h+='<p>'+((st&&st.pg>1)?(st.pg+'페이지 · '):'')+'검사 '+res.length+' / '+qn+'개 · 문제 '+fl.length+'건 · 수동확인 '+ck.length+'건 · 오류 '+er.length+'건'+(sk.length?' · 제외(Approve for Sending) '+sk.length+'건':'')+' · 나머지 정상</p>';
-var card=function(r,cls){h+='<div class="c '+cls+'"><b>#'+r.n+' '+esc(r.name)+'</b> - <a href="'+esc(r.u)+'" target="_blank">열기</a>'+(r.png?' · PNG 저장됨':'');if(r.err)h+='<pre>'+esc(r.err)+'</pre>';if(r.rmsg)h+='<pre>'+esc(r.rmsg)+'</pre>';if(r.pmsg)h+='<pre>'+esc(r.pmsg)+'</pre>';h+='</div>';};
+h+='<div style="position:sticky;top:0;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 12px;margin:10px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 6px rgba(0,0,0,.08);z-index:5">'
++'<button onclick="xopen()" style="background:#4A148C;color:#fff;border:none;border-radius:5px;padding:7px 14px;font-weight:bold;cursor:pointer">선택 열기 (<span id="xopn">0</span>)</button>'
++'<button onclick="xsvsel()" style="background:#0B6E4F;color:#fff;border:none;border-radius:5px;padding:7px 14px;font-weight:bold;cursor:pointer">선택 PNG 저장</button>'
++'<button onclick="xsel(1)" style="background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer">모두 선택</button>'
++'<button onclick="xsel(0)" style="background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer">해제</button>'
++'<span style="font-size:12px;color:#666">문제 항목은 기본 선택 · 탭이 여러 개 안 열리면 팝업 허용</span></div>';
+var card=function(r,cls){h+='<div class="c '+cls+'">'
++'<label style="float:right;font-weight:normal;font-size:12px;color:#555;cursor:pointer"><input type="checkbox" class="opck"'+(cls==='f'?' checked':'')+' data-n="'+r.n+'" data-u="'+esc(r.u)+'" data-nm="'+esc(r.name)+'"> 선택</label>'
++'<b>#'+r.n+' '+esc(r.name)+'</b> - <a href="'+esc(r.u)+'" target="_blank">열기</a>'
++(imgs[r.n]?' · <a href="#" onclick="return xsv('+r.n+')">PNG 저장</a>':'')
++(r.png?' · PNG 저장됨':'');
+if(r.err)h+='<pre>'+esc(r.err)+'</pre>';if(r.rmsg)h+='<pre>'+esc(r.rmsg)+'</pre>';if(r.pmsg)h+='<pre>'+esc(r.pmsg)+'</pre>';
+if(imgs[r.n])h+='<details><summary style="cursor:pointer;color:#1565c0;font-size:12px">스크린샷 보기</summary><img id="xim'+r.n+'" style="max-width:100%;border:1px solid #ccc;margin-top:6px" alt="screenshot"></details>';
+h+='</div>';};
 if(fl.length){h+='<h3>[X] 문제 ('+fl.length+')</h3>';fl.forEach(function(r){card(r,'f');});}
 if(ck.length){h+='<h3>[?] 수동 확인 ('+ck.length+')</h3>';ck.forEach(function(r){card(r,'k');});}
 if(er.length){h+='<h3>[!] 오류 ('+er.length+')</h3>';er.forEach(function(r){if(!r.flag&&!r.chk)card(r,'e');});}
 var okn=res.filter(function(r){return !r.flag&&!r.chk&&!r.err&&!r.skip;});
-if(sk.length){h+='<h3>[-] 제외 - Approve for Sending ('+sk.length+')</h3><p style="color:#666">'+sk.map(function(r){return '#'+r.n+' '+esc(r.name);}).join(' · ')+'</p>';}h+='<h3>[OK] 정상 ('+okn.length+')</h3><p style="color:#666">'+okn.map(function(r){return '#'+r.n+' '+esc(r.name);}).join(' · ')+'</p></body></html>';
+if(sk.length){h+='<h3>[-] 제외 - Approve for Sending ('+sk.length+')</h3><p style="color:#666">'+sk.map(function(r){return '#'+r.n+' '+esc(r.name);}).join(' · ')+'</p>';}h+='<h3>[OK] 정상 ('+okn.length+')</h3><p style="color:#666">'+okn.map(function(r){return '#'+r.n+' '+esc(r.name);}).join(' · ')+'</p>';
+h+='<script>var IMGS='+JSON.stringify(imgs)+';'
++'for(var k in IMGS){var e=document.getElementById("xim"+k);if(e)e.src=IMGS[k];}'
++'function xall(){return [].slice.call(document.querySelectorAll(".opck"));}'
++'function xcnt(){var n=xall().filter(function(c){return c.checked;}).length;var e=document.getElementById("xopn");if(e)e.textContent=n;return n;}'
++'function xsel(v){xall().forEach(function(c){c.checked=!!v;});xcnt();}'
++'document.addEventListener("change",function(e){if(e.target&&/opck/.test(e.target.className||""))xcnt();});'
++'function xsv(n){var d=IMGS[n];if(!d){alert("저장된 스크린샷이 없어요.");return false;}var el=document.querySelector(".opck[data-n=\\""+n+"\\"]");var nm=(el&&el.getAttribute("data-nm"))||("invoice_"+n);nm=nm.replace(/[^A-Za-z0-9\uAC00-\uD7A3 ._-]+/g," ").replace(/\\s+/g," ").trim().slice(0,40)||("invoice_"+n);var a=document.createElement("a");a.href=d;a.download="XCHK_"+n+"_"+nm+".jpg";document.body.appendChild(a);a.click();setTimeout(function(){try{a.remove();}catch(_e){}},800);return false;}'
++'function xopen(){var picks=xall().filter(function(c){return c.checked;});if(!picks.length){alert("항목을 먼저 체크하세요.");return;}var blocked=0,i=0;var go=function(){if(i>=picks.length){if(blocked)alert(blocked+"개 탭이 팝업 차단으로 안 열렸어요 - 주소창 팝업 아이콘에서 허용 후 다시 누르세요.");return;}var w=null;try{w=window.open(picks[i].getAttribute("data-u"),"_blank");}catch(_e){}if(!w)blocked++;i++;setTimeout(go,350);};go();}'
++'function xsvsel(){var picks=xall().filter(function(c){return c.checked&&IMGS[c.getAttribute("data-n")];});if(!picks.length){alert("저장할 스크린샷이 있는 항목을 체크하세요. (문제·수동확인 항목만 스크린샷이 있어요)");return;}var i=0;var go=function(){if(i>=picks.length)return;xsv(picks[i].getAttribute("data-n"));i++;setTimeout(go,600);};go();}'
++'xcnt();<\/script>';
+h+='</body></html>';
+if(hasG){res.forEach(function(r){if(r.img){try{GM_setValue('xchk_img_'+r.n,'');}catch(_e){}}});}
 dl(new Blob([h],{type:'text/html'}),'XCHK_Report_'+ts()+'.html');try{var _bu9=URL.createObjectURL(new Blob([h],{type:'text/html'}));var _w8=null;try{_w8=window.open(_bu9,'_blank');}catch(_e8){}if(!_w8){var _ob=document.createElement('div');_ob.textContent='OPEN Auto Check report - click / 리포트 열기 (팝업 차단됨 - 클릭)';_ob.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#0F6CBD;color:#fff;font:bold 14px Arial;padding:12px 16px;border-radius:8px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4)';_ob.onclick=function(){try{window.open(_bu9,'_blank');}catch(_e3){}try{_ob.remove();}catch(_e4){}};document.body.appendChild(_ob);setTimeout(function(){try{_ob.remove();}catch(_e5){}},600000);}setTimeout(function(){try{URL.revokeObjectURL(_bu9);}catch(_e){}},600000);}catch(_e){}
 }catch(_e){}};
 var widget=function(txt){var w=document.getElementById('xchkbox');if(!w){w=document.createElement('div');w.id='xchkbox';w.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#4A148C;color:#fff;font:bold 13px Arial;padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:380px';var s=document.createElement('span');s.id='xchktxt';w.appendChild(s);var b=document.createElement('button');b.textContent='STOP';b.style.cssText='margin-left:10px;background:#c62828;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-weight:bold;cursor:pointer';b.onclick=function(){var st2=null;try{st2=JSON.parse(localStorage.getItem(LSQ)||'null');}catch(_e){}if(st2)report(st2,1);stopAll();};w.appendChild(b);document.body.appendChild(w);}var t=document.getElementById('xchktxt');if(t)t.textContent=txt;};
@@ -82,7 +110,7 @@ if(c){fin(c);return;}
 if(typeof GM_xmlhttpRequest==='function'){GM_xmlhttpRequest({method:'GET',url:H2CURL,timeout:20000,onload:function(r){var t=(r&&r.responseText)||'';if(r.status>=200&&r.status<300&&t){if(hasG){try{GM_setValue(K,t);}catch(_e){}}fin(t);}else{fin('');}},onerror:function(){fin('');},ontimeout:function(){fin('');}});return;}
 var sc=document.createElement('script');sc.src=H2CURL;sc.onload=function(){cb(typeof window.html2canvas==='function'?window.html2canvas:null);};sc.onerror=function(){cb(null);};(document.head||document.documentElement).appendChild(sc);
 };
-var capture=function(issueTxt,name,cb){
+var capture=function(issueTxt,name,num,cb){
 getH2C(function(h2c){
 if(!h2c){cb(0);return;}
 var ov=document.createElement('div');ov.id='xchkov';ov.style.cssText='position:absolute;top:0;left:0;right:0;z-index:2147483000;background:#FFF3CD;color:#6b4c00;border:4px solid #E0A800;font:bold 12px/1.5 Arial;padding:10px 16px;white-space:pre-wrap';ov.textContent=issueTxt;
@@ -90,7 +118,14 @@ document.body.insertBefore(ov,document.body.firstChild);
 var w=document.getElementById('xchkbox');if(w)w.style.display='none';
 setTimeout(function(){
 var fin2=function(ok){try{ov.remove();}catch(_e){}if(w)w.style.display='';cb(ok);};
-try{h2c(document.body,{logging:false,scale:1}).then(function(cv){try{cv.toBlob(function(b){try{if(b)dl(b,name);}catch(_e){}fin2(b?1:0);},'image/png');}catch(_e){fin2(0);}},function(){fin2(0);});}catch(_e){fin2(0);}
+try{h2c(document.body,{logging:false,scale:1}).then(function(cv){
+var hasG2=(typeof GM_setValue==='function');
+if(hasG2){var du='';try{du=cv.toDataURL('image/jpeg',0.72);}catch(_e){}
+if(du&&du.length>1500000){try{du=cv.toDataURL('image/jpeg',0.45);}catch(_e){}}
+if(du){try{GM_setValue('xchk_img_'+num,du);fin2(2);return;}catch(_e){}}
+fin2(0);return;}
+try{cv.toBlob(function(b){try{if(b)dl(b,name);}catch(_e){}fin2(b?1:0);},'image/png');}catch(_e){fin2(0);}
+},function(){fin2(0);});}catch(_e){fin2(0);}
 },350);
 });
 };
@@ -101,7 +136,7 @@ if(localStorage.getItem(LSR)!=='1')return;
 st.res.push(r);st.i++;
 try{localStorage.setItem(LSQ,JSON.stringify(st));}catch(_e){}
 if(st.i<st.q.length){widget((st.i+1)+'/'+st.q.length+' 으로 이동...');setTimeout(function(){location.href=st.q[st.i].u;},400);}
-else{var nf=st.res.filter(function(x){return x.flag;}).length;var nk=st.res.filter(function(x){return x.chk&&!x.flag;}).length;var ns=st.res.filter(function(x){return x.skip;}).length;report(st,0);stopAll();alert('Auto Check 완료: '+(st.q.length-ns)+'개 검사'+(st.pg>1?' ['+st.pg+'페이지]':'')+(st.na?' (Approved & Sent '+st.na+'개 제외)':'')+(ns?' (Approve for Sending '+ns+'개 제외)':'')+', 문제 '+nf+'건, 수동확인 '+nk+'건.\nPNG와 HTML 리포트는 다운로드 폴더에 있어요.');if(st.lu){setTimeout(function(){location.href=st.lu;},400);}}
+else{var nf=st.res.filter(function(x){return x.flag;}).length;var nk=st.res.filter(function(x){return x.chk&&!x.flag;}).length;var ns=st.res.filter(function(x){return x.skip;}).length;report(st,0);stopAll();alert('Auto Check 완료: '+(st.q.length-ns)+'개 검사'+(st.pg>1?' ['+st.pg+'페이지]':'')+(st.na?' (Approved & Sent '+st.na+'개 제외)':'')+(ns?' (Approve for Sending '+ns+'개 제외)':'')+', 문제 '+nf+'건, 수동확인 '+nk+'건.\nHTML 리포트가 열렸어요 (다운로드 폴더에도 저장). 문제 인보이스 한번에 열기·PNG 선택 저장은 리포트 위 버튼으로!');if(st.lu){setTimeout(function(){location.href=st.lu;},400);}}
 };
 var proceed=function(st){
 var item=st.q[st.i];var num=st.i+1;
@@ -137,8 +172,8 @@ if(out.price&&out.price.err)errs.push('Price Check: '+out.price.err);
 if(!out.reset&&!out.price)errs.push('도구 실행 안 됨 (no result)');
 if(out.al)errs.push(out.al.trim());
 if(errs.length)r.err=errs.join('\n');
-if(fl){var itxt='AUTO CHECK #'+num+' '+(item.n||'')+'\n\n'+(r.rmsg?r.rmsg+'\n':'')+(r.pmsg||'');
-capture(itxt,'XCHK_'+num+'_'+safe(item.n)+'.png',function(ok){r.png=ok?1:0;record(st,r);});}
+if(fl||r.chk){var itxt='AUTO CHECK #'+num+' '+(item.n||'')+'\n\n'+(r.rmsg?r.rmsg+'\n':'')+(r.pmsg||'');
+capture(itxt,'XCHK_'+num+'_'+safe(item.n)+'.png',num,function(ok){if(ok===2)r.img=1;else r.png=ok?1:0;record(st,r);});}
 else{record(st,r);}
 },700);
 },500);
