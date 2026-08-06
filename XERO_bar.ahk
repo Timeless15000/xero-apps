@@ -8,7 +8,7 @@
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 22                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
+APPVER := 23                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Timeless_App.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
