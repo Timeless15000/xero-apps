@@ -2,6 +2,10 @@
 setlocal EnableExtensions
 chcp 65001 >nul
 title OUTLOOK Bar - install / update
+rem  2026-08-07: also match renamed folders like "Outlook 1"; if the company
+rem  folder is missing but the program is already installed, keep going
+rem  (the bar updates program files from GitHub itself); when nothing is
+rem  found, print a diagnosis screen the staff can send to Brian.
 
 set "URL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
 set "ICOURL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/outlook.ico"
@@ -48,8 +52,16 @@ for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass
 if defined SRCDIR goto :havesrc
 rem  Not in the usual spots - deeper scan (renamed OneDrive shortcuts, other layouts)
 echo   Searching for the company Outlook folder... 1-2 min / 회사 Outlook 폴더 검색 중... 1~2분 걸릴 수 있어요
-for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; $roots = $roots | Where-Object { $_ -and ($_ -notmatch 'AppData$') } | Select-Object -Unique; foreach($r in $roots){ if(-not (Test-Path $r)){continue}; $hit = Get-ChildItem -Path $r -Directory -Recurse -Depth 5 -Filter Outlook -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch 'node_modules|OUTLOOK Bar|AppData|\.git' } | Where-Object { Test-Path (Join-Path $_.FullName 'src\index.js') } | Select-Object -First 1; if($hit){ Write-Output $hit.FullName; exit } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
-if not defined SRCDIR goto :nofolder
+for /f "usebackq delims=" %%S in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory -ErrorAction SilentlyContinue | ForEach-Object { $roots += $_.FullName }; $roots = $roots | Where-Object { $_ -and ($_ -notmatch 'AppData$') } | Select-Object -Unique; foreach($r in $roots){ if(-not (Test-Path $r)){continue}; $hit = Get-ChildItem -Path $r -Directory -Recurse -Depth 5 -Filter 'Outlook*' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch 'node_modules|OUTLOOK Bar|AppData|\.git' } | Where-Object { Test-Path (Join-Path $_.FullName 'src\index.js') } | Select-Object -First 1; if($hit){ Write-Output $hit.FullName; exit } }"`) do if not defined SRCDIR set "SRCDIR=%%S"
+if defined SRCDIR goto :havesrc
+rem  Company folder not found, but the program is already on this PC - keep going.
+rem  Since v24 the bar refreshes the program files from GitHub by itself.
+if defined DESTDIR (
+  echo   Company folder not found - continuing with the copy already on this PC.
+  echo   회사 폴더는 못 찾았지만 이미 설치된 프로그램이 있어 그걸로 계속합니다.
+  goto :havefolder
+)
+goto :nofolder
 :havesrc
 echo   Getting the latest program from the company folder... / 회사 폴더에서 최신 프로그램 가져오는 중...
 set "DESTDIR=%USERPROFILE%\OUTLOOK Bar\Outlook"
@@ -159,6 +171,12 @@ echo      문서 ^> Admin ^> Automation ^> Outlook
 echo   2^) 그 폴더에서 "동기화(Sync)" 또는 "OneDrive에 바로가기 추가"를 누르세요.
 echo   3^) OneDrive 동기화가 끝나길 몇 분 기다렸다가 이 파일을 다시 실행하세요.
 echo   계속 안 되면 관리자(Brian)에게 알려주세요.
+echo.
+echo   Checking why... 1-2 min / 왜 안 되는지 확인 중... 1~2분
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; Write-Output ''; Write-Output '  --- 진단 / Diagnosis ---'; if($env:OneDriveCommercial){Write-Output ('  company OneDrive: '+$env:OneDriveCommercial)}else{Write-Output '  company OneDrive: NOT SIGNED IN / 회사 OneDrive 로그인이 안 되어 있어요 - OneDrive에 회사 메일로 로그인하세요'}; if($env:OneDrive){Write-Output ('  OneDrive        : '+$env:OneDrive)}; $roots=@($env:OneDriveCommercial,$env:OneDrive); Get-ChildItem $env:USERPROFILE -Directory | ForEach-Object { $roots += $_.FullName }; $roots=$roots | Where-Object { $_ -and (Test-Path $_) -and ($_ -notmatch 'AppData$') } | Select-Object -Unique; $hits=@(); foreach($r in $roots){ Get-ChildItem -Path $r -Directory -Recurse -Depth 5 -Filter 'Outlook*' | Where-Object { $_.FullName -notmatch 'node_modules|AppData|\.git' } | ForEach-Object { $hits += $_.FullName } }; $hits=$hits | Select-Object -Unique; Write-Output '  Outlook folders on this PC / 이 PC에서 찾은 Outlook 폴더:'; if(@($hits).Count -eq 0){ Write-Output '    none / 없음 - 동기화가 아직 안 됐거나 다른 폴더를 동기화했을 수 있어요' } else { foreach($h in $hits){ if(Test-Path (Join-Path $h 'src\index.js')){ Write-Output ('    [program OK] '+$h) } else { Write-Output ('    [src missing / src 없음] '+$h) } } }"
+echo.
+echo   * Take a photo of this window and send it to Brian.
+echo   * 이 창을 캡처해서 Brian에게 보내주세요.
 echo.
 pause
 exit /b 1
