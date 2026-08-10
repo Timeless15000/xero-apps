@@ -277,7 +277,7 @@ localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:l
 localStorage.setItem(LSR,&#x27;1&#x27;);
 location.href=items[0].u;
 }catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="06/08/26" style="background:#B71C1C" href="javascript:(function(){try{
-var PRBUILD=&#x27;B8&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
+var PRBUILD=&#x27;B9&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
 var LSQ=&#x27;xpay_q&#x27;,LSR=&#x27;xpay_run&#x27;;
 var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}
 var running=(localStorage.getItem(LSR)===&#x27;1&#x27;);
@@ -373,58 +373,41 @@ try{
 if(typeof fetch===&#x27;undefined&#x27;){cb();return;}
 var targets=R.gap.concat(R.late,R.old,R.ok);
 if(!targets.length){cb();return;}
-var GX=&#x27;[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}&#x27;;
+/* B9 (10/08/2026): Xero 변경 대응 — 인보이스 페이지 스크래핑(React 셸로 변해 GUID 없음)과 /api/contacts/contacts(403) 둘 다 죽어서
+   contacts-mfe API로 교체: 검색=/api/contacts-mfe/v2/contacts?search= (name/id), 상세=/api/contacts-mfe/v2/contacts/{id} (primaryPersonEmailAddress).
+   헤더는 Bearer + xero-tenant-shortcode 필수(없으면 412/401). 클래식 Awaiting Payment 페이지에서도 토큰·shortcode 둘 다 있음 — 실제 확인됨. */
 var sc=null;
 try{var m0=location.pathname.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(m0)sc=m0[1];}catch(_e){}
 if(!sc){try{var scm=document.documentElement.innerHTML.match(/shortcode[&quot;&#x27;]?\s*[:=]\s*[&quot;&#x27;]?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!==&#x27;!&#x27;)sc=&#x27;!&#x27;+sc;}}catch(_e){}}
 var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0&lt;ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&amp;&amp;oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
-var mkcu=function(o,g){o.gid=g;o.cu=sc?(location.origin+&#x27;/app/&#x27;+sc+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;):(location.origin+&#x27;/Contacts/View/&#x27;+g);};
-var gem=function(c){if(!c)return &#x27;&#x27;;var e=c.emailAddress||c.EmailAddress||c.email||c.Email||&#x27;&#x27;;if(!e){var ps=c.contactPersons||c.ContactPersons||[];for(var q=0;q&lt;ps.length;q++){var pe=ps[q]&amp;&amp;(ps[q].emailAddress||ps[q].email||ps[q].EmailAddress);if(pe){e=pe;break;}}}return String(e||&#x27;&#x27;).trim();};
-var i=0;var LIM=Math.min(targets.length,80);
+if(!tok||!sc){cb();return;}
+var HD={&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc};
+var mkcu=function(o,g){o.gid=g;o.cu=location.origin+&#x27;/app/&#x27;+sc+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;;};
+var i=0;var LIM=Math.min(targets.length,200);
 var next=function(){
 if(window.__xpayStop){cb();return;}
 if(i&gt;=LIM){cb();return;}
 var o=targets[i];i++;
 widget(&#x27;Payment Review - contacts/emails &#x27;+i+&#x27;/&#x27;+LIM+&#x27;...&#x27;);
-var fu=(o.arr.filter(function(x){return x.u;})[0]||{}).u;
-var stepB=function(){
-if(!tok||!sc){setTimeout(next,60);return;}
-fetch(&#x27;/api/contacts/contacts?pageSize=5&amp;search=&#x27;+encodeURIComponent(o.c),{credentials:&#x27;include&#x27;,headers:{&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc}})
+fetch(&#x27;/api/contacts-mfe/v2/contacts?pageSize=5&amp;search=&#x27;+encodeURIComponent(o.c),{credentials:&#x27;include&#x27;,headers:HD})
 .then(function(r){return r.ok?r.json():null;})
 .then(function(j){
-var cs=(j&amp;&amp;j.contacts)||[];var cid=null,co=null;
-for(var x=0;x&lt;cs.length;x++){if(String(cs[x].contactName||&#x27;&#x27;).trim()===o.c){cid=cs[x].id;co=cs[x];break;}}
-if(!cid&amp;&amp;cs.length===1){cid=cs[0].id;co=cs[0];}
+var cs=(j&amp;&amp;j.contacts)||[];var cid=null;
+for(var x=0;x&lt;cs.length;x++){if(String(cs[x].name||&#x27;&#x27;).trim()===o.c){cid=cs[x].id;break;}}
+if(!cid){var lc=o.c.toLowerCase();for(var y=0;y&lt;cs.length;y++){if(String(cs[y].name||&#x27;&#x27;).trim().toLowerCase()===lc){cid=cs[y].id;break;}}}
+if(!cid&amp;&amp;cs.length===1)cid=cs[0].id;
 if(cid&amp;&amp;!o.cu)mkcu(o,cid);
-if(co&amp;&amp;!o.em)o.em=gem(co);
 var did=cid||o.gid;
-if(!o.em&amp;&amp;did){
-fetch(&#x27;/api/contacts/contacts/&#x27;+did,{credentials:&#x27;include&#x27;,headers:{&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc}})
+if(did&amp;&amp;!o.em){
+fetch(&#x27;/api/contacts-mfe/v2/contacts/&#x27;+did,{credentials:&#x27;include&#x27;,headers:HD})
 .then(function(r2){return r2.ok?r2.json():null;})
-.then(function(d){var c2=d&amp;&amp;(d.contact||d);if(c2&amp;&amp;!o.em)o.em=gem(c2);setTimeout(next,120);})
-[&#x27;catch&#x27;](function(){setTimeout(next,120);});
+.then(function(d){var c2=d&amp;&amp;(d.contact||d);if(c2&amp;&amp;!o.em)o.em=String(c2.primaryPersonEmailAddress||c2.emailAddress||&#x27;&#x27;).trim();setTimeout(next,80);})
+[&#x27;catch&#x27;](function(){setTimeout(next,80);});
 return;
 }
-setTimeout(next,120);
+setTimeout(next,80);
 })
-[&#x27;catch&#x27;](function(){setTimeout(next,120);});
-};
-if(!fu){stepB();return;}
-fetch(fu,{credentials:&#x27;include&#x27;})
-.then(function(r){
-try{if(!sc&amp;&amp;r.url){var mu=r.url.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(mu)sc=mu[1];}}catch(_e){}
-return r.ok?r.text():&#x27;&#x27;;
-})
-.then(function(html){
-var g=null;
-try{
-var m1=html.match(new RegExp(&#x27;/app/(![A-Za-z0-9]{3,10})/contacts/contact/(&#x27;+GX+&#x27;)&#x27;));
-if(m1){if(!sc)sc=m1[1];g=m1[2];}
-if(!g){var m2=html.match(new RegExp(&#x27;contactID=(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;Contacts/View/(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;))||html.match(new RegExp(&#x27;contact[^0-9a-fA-F]{0,24}(&#x27;+GX+&#x27;)&#x27;,&#x27;i&#x27;));if(m2)g=m2[1];}
-}catch(_e){}
-if(g)mkcu(o,g);stepB();
-})
-[&#x27;catch&#x27;](function(){stepB();});
+[&#x27;catch&#x27;](function(){setTimeout(next,80);});
 };
 next();
 }catch(_e){cb();}
