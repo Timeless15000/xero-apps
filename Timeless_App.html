@@ -276,354 +276,87 @@ try{sessionStorage.setItem(&#x27;xchk_tab&#x27;,tab);}catch(_e){}
 localStorage.setItem(LSQ,JSON.stringify({i:0,q:items,res:[],tab:tab,md:MODE,lu:location.href}));
 localStorage.setItem(LSR,&#x27;1&#x27;);
 location.href=items[0].u;
-}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="06/08/26" style="background:#B71C1C" href="javascript:(function(){try{
-var PRBUILD=&#x27;B9&#x27;;   /* 리포트 헤더에 표시되는 빌드 번호. Payment Review 를 고칠 때마다 B4, B5... 로 올릴 것 */
-var LSQ=&#x27;xpay_q&#x27;,LSR=&#x27;xpay_run&#x27;;
-var job=null;try{job=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}
-var running=(localStorage.getItem(LSR)===&#x27;1&#x27;);
-var stopAll=function(){try{localStorage.removeItem(LSR);localStorage.removeItem(LSQ);}catch(_e){}var w=document.getElementById(&#x27;xpaybox&#x27;);if(w)w.remove();window.__xpayBusy=0;};
-var esc=function(s){return String(s==null?&#x27;&#x27;:s).replace(/&amp;/g,&#x27;&amp;amp;&#x27;).replace(/&lt;/g,&#x27;&amp;lt;&#x27;).replace(/&gt;/g,&#x27;&amp;gt;&#x27;);};
-var dl=function(blob,name){var a=document.createElement(&#x27;a&#x27;);a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},1500);};
-var ts=function(){var d=new Date(),z=function(n){return (&#x27;0&#x27;+n).slice(-2);};return z(d.getDate())+&#x27;-&#x27;+z(d.getMonth()+1)+&#x27;-&#x27;+String(d.getFullYear()).slice(-2)+&#x27;_&#x27;+z(d.getHours())+z(d.getMinutes());};
-var MN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
-var MT=[&#x27;Jan&#x27;,&#x27;Feb&#x27;,&#x27;Mar&#x27;,&#x27;Apr&#x27;,&#x27;May&#x27;,&#x27;Jun&#x27;,&#x27;Jul&#x27;,&#x27;Aug&#x27;,&#x27;Sep&#x27;,&#x27;Oct&#x27;,&#x27;Nov&#x27;,&#x27;Dec&#x27;];
-var mkey=function(txt){var s=String(txt||&#x27;&#x27;);var m=s.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);if(m){var mo=MN[m[2].toLowerCase()];if(mo)return parseInt(m[3],10)*12+(mo-1);}m=s.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);if(m){var mo2=parseInt(m[2],10);if(mo2&gt;=1&amp;&amp;mo2&lt;=12)return parseInt(m[3],10)*12+(mo2-1);}return null;};
-var mtxt=function(k){return MT[k%12]+&#x27; &#x27;+Math.floor(k/12);};
-var pdate=function(txt){var s=String(txt||&#x27;&#x27;);var m=s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);if(m){var mo=MN[m[2].toLowerCase()];if(mo)return new Date(parseInt(m[3],10),mo-1,parseInt(m[1],10));}m=s.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);if(m){var mo2=parseInt(m[2],10);if(mo2&gt;=1&amp;&amp;mo2&lt;=12)return new Date(parseInt(m[3],10),mo2-1,parseInt(m[1],10));}return null;};
-var odays=function(odTxt,ddTxt){var s=String(odTxt||&#x27;&#x27;);var m=s.match(/(\d+)/);if(m)return parseInt(m[1],10);var d=pdate(ddTxt);if(!d)return null;var t=new Date();var n=Math.floor((new Date(t.getFullYear(),t.getMonth(),t.getDate())-d)/86400000);return n&gt;0?n:0;};
-var amt=function(s){var v=parseFloat(String(s||&#x27;&#x27;).replace(/[^0-9.\-]/g,&#x27;&#x27;));return isNaN(v)?0:v;};
-var fmt=function(v){return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,&#x27;,&#x27;);};
-var widget=function(txt){var w=document.getElementById(&#x27;xpaybox&#x27;);if(!w){w=document.createElement(&#x27;div&#x27;);w.id=&#x27;xpaybox&#x27;;w.style.cssText=&#x27;position:fixed;top:8px;right:8px;z-index:2147483647;background:#B71C1C;color:#fff;font:bold 13px Arial;padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:380px&#x27;;var s=document.createElement(&#x27;span&#x27;);s.id=&#x27;xpaytxt&#x27;;w.appendChild(s);var b=document.createElement(&#x27;button&#x27;);b.textContent=&#x27;STOP&#x27;;b.style.cssText=&#x27;margin-left:10px;background:#fff;color:#B71C1C;border:none;border-radius:5px;padding:4px 10px;font-weight:bold;cursor:pointer&#x27;;b.onclick=function(){window.__xpayStop=1;if(window.__xpayFin){var t2=document.getElementById(&#x27;xpaytxt&#x27;);if(t2)t2.textContent=&#x27;Stopping - building the report...&#x27;;return;}var st2=null;try{st2=JSON.parse(localStorage.getItem(LSQ)||&#x27;null&#x27;);}catch(_e){}if(st2&amp;&amp;st2.rows&amp;&amp;st2.rows.length){finish(st2,1);}else{stopAll();}};w.appendChild(b);document.body.appendChild(w);}var t=document.getElementById(&#x27;xpaytxt&#x27;);if(t)t.textContent=txt;};
-var colRows=function(){
-var tbs=[].slice.call(document.querySelectorAll(&#x27;table&#x27;));
-for(var ti=0;ti&lt;tbs.length;ti++){
-var tb=tbs[ti];
-var hcells=[].slice.call(tb.querySelectorAll(&#x27;thead th&#x27;));
-if(!hcells.length){var r0=tb.querySelector(&#x27;tr&#x27;);if(r0)hcells=[].slice.call(r0.querySelectorAll(&#x27;th,td&#x27;));}
-if(!hcells.length)continue;
-var ix={};
-for(var hi=0;hi&lt;hcells.length;hi++){var t0=(hcells[hi].innerText||hcells[hi].textContent||&#x27;&#x27;).trim().toLowerCase();
-if(t0===&#x27;to&#x27;&amp;&amp;ix.to==null)ix.to=hi;else if(t0===&#x27;date&#x27;&amp;&amp;ix.dt==null)ix.dt=hi;else if(t0===&#x27;due&#x27;&amp;&amp;ix.du==null)ix.du=hi;else if(t0===&#x27;number&#x27;&amp;&amp;ix.no==null)ix.no=hi;else if(/^ref/.test(t0)&amp;&amp;ix.rf==null)ix.rf=hi;else if(/^overdue/.test(t0)&amp;&amp;ix.od==null)ix.od=hi;else if(/^due\s*date/.test(t0)&amp;&amp;ix.dd==null)ix.dd=hi;}
-if(ix.to==null||ix.dt==null||ix.du==null)continue;
-var rows=[].slice.call(tb.querySelectorAll(&#x27;tbody tr&#x27;));
-var its=[];
+}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC ALL 1 page</a> <a class="bm" data-d="24/07/26" data-k="autocheckapprove" style="background:#7B1FA2" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App 1 page</a> <a class="bm" data-d="26/07/26" data-k="autocheckapproveall" style="background:#9C27B0" href="javascript:(function(){try{window.__xchkMode=&#x27;appr&#x27;;window.__xchkPg=1;var A=window.__xbarTOOLS||[];var f=0;for(var i=0;i&lt;A.length;i++){if(A[i].k===&#x27;autocheckall&#x27;){f=1;A[i].run();break;}}if(!f){window.__xchkMode=null;window.__xchkPg=null;alert(&#x27;XERO bar에서만 사용 가능합니다 (Shift+F24 / bar 버튼). Use it from the XERO bar.&#x27;);}}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">IC App ALL pages</a> <a class="bm" data-d="16/08/26" style="background:#0277BD" href="javascript:(function(){try{
+var ACBUILD=&#x27;C1&#x27;;
+var $=function(s,r){return [].slice.call((r||document).querySelectorAll(s));};
+var esc=function(s){return String(s==null?&#x27;&#x27;:s).replace(/[&amp;&lt;&gt;&quot;]/g,function(c){return c===&#x27;&amp;&#x27;?&#x27;&amp;amp;&#x27;:c===&#x27;&lt;&#x27;?&#x27;&amp;lt;&#x27;:c===&#x27;&gt;&#x27;?&#x27;&amp;gt;&#x27;:&#x27;&amp;quot;&#x27;;});};
+var num=function(s){var t=String(s||&#x27;&#x27;);var v=parseFloat(t.replace(/[^0-9.\-]/g,&#x27;&#x27;));if(isNaN(v))return null;if(/\(/.test(t)||/^\s*-/.test(t))v=-Math.abs(v);return v;};
+var fmt=function(v){return Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,&#x27;,&#x27;);};
+var isDoc=function(h){return /creditnoteid=|creditnote|overpayment|prepayment/i.test(h||&#x27;&#x27;);};
+var pickA=function(row){var as=$(&#x27;a[href]&#x27;,row),i,h,best=null;
+for(i=0;i&lt;as.length;i++){h=as[i].href||&#x27;&#x27;;if(/\/contacts?\//i.test(h)||/contactid=/i.test(h))continue;if(isDoc(h))return as[i];if(!best&amp;&amp;/invoiceid=/i.test(h))best=as[i];}
+return best||null;};
+var tbs=$(&#x27;table&#x27;),tb=null,ix=null,hd=null,i,k;
+for(i=0;i&lt;tbs.length;i++){var h=$(&#x27;thead th&#x27;,tbs[i]);if(!h.length){var r0=tbs[i].querySelector(&#x27;tr&#x27;);if(r0)h=$(&#x27;th,td&#x27;,r0);}
+if(!h.length)continue;var m={};
+for(k=0;k&lt;h.length;k++){var t0=(h[k].innerText||h[k].textContent||&#x27;&#x27;).trim().toLowerCase();
+if(t0===&#x27;due&#x27;&amp;&amp;m.du==null)m.du=k;else if(t0===&#x27;to&#x27;&amp;&amp;m.to==null)m.to=k;else if(t0===&#x27;date&#x27;&amp;&amp;m.dt==null)m.dt=k;else if(t0===&#x27;number&#x27;&amp;&amp;m.no==null)m.no=k;else if(/^ref/.test(t0)&amp;&amp;m.rf==null)m.rf=k;}
+if(m.du!=null&amp;&amp;m.to!=null){tb=tbs[i];ix=m;hd=h;break;}}
+if(!tb){alert(&#x27;인보이스 목록을 먼저 열어주세요.\nSales &gt; Invoices &gt; Awaiting Payment\n\nOpen the invoice list first.&#x27;);return;}
+var rows=$(&#x27;tbody tr&#x27;,tb);if(!rows.length)rows=[].slice.call(tb.rows).filter(function(r){return !r.querySelector(&#x27;th&#x27;);});
+var out=[],tot=0;
 rows.forEach(function(row){
 var tds=[].slice.call(row.children).filter(function(c){return /^(td|th)$/i.test(c.tagName||&#x27;&#x27;);});
-if(tds.length&lt;=Math.max(ix.to,ix.dt,ix.du))return;
-var gv=function(i){return i==null?&#x27;&#x27;:(tds[i].innerText||tds[i].textContent||&#x27;&#x27;).trim();};
-var dk=mkey(gv(ix.dt));var to=gv(ix.to);
-if(dk==null||!to)return;
-var a=row.querySelector(&#x27;a[href]&#x27;);
-var u=a?a.href:&#x27;&#x27;;if(/CreditNote/i.test(u))return;
-var n=gv(ix.no);var av=amt(gv(ix.du));
-its.push({c:to,d:dk,a:av,n:n,r:gv(ix.rf),dt:gv(ix.dt),od:odays(gv(ix.od),gv(ix.dd)),u:u,k:n?n:(u+&#x27;|&#x27;+gv(ix.dt)+&#x27;|&#x27;+av)});
+if(tds.length&lt;=ix.du)return;
+var gv=function(j){return (j==null||!tds[j])?&#x27;&#x27;:((tds[j].innerText||tds[j].textContent||&#x27;&#x27;)+&#x27;&#x27;).replace(/\s+/g,&#x27; &#x27;).replace(/^ | $/g,&#x27;&#x27;);};
+var a=pickA(row);var u=a?a.href:&#x27;&#x27;;
+var v=num(gv(ix.du));
+var cn=isDoc(u);
+if(!(cn||(v!=null&amp;&amp;v&lt;0)))return;
+var ty=/overpayment/i.test(u)?&#x27;OVER&#x27;:(/prepayment/i.test(u)?&#x27;PRE&#x27;:&#x27;CN&#x27;);
+out.push({u:u,c:gv(ix.to),d:gv(ix.dt),n:gv(ix.no)||gv(ix.rf),v:(v==null?0:v),t:ty});
+tot+=Math.abs(v==null?0:v);
+try{row.style.background=&#x27;#FFF6D5&#x27;;}catch(e){}
 });
-if(its.length)return its;
+var sortA=function(){try{var th=hd[ix.du];var a=th.querySelector(&#x27;a&#x27;);if(a){a.click();return 1;}}catch(e){}return 0;};
+var wrap=document.createElement(&#x27;div&#x27;);
+wrap.style.cssText=&#x27;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2147483647;font-family:Arial,sans-serif&#x27;;
+var box=document.createElement(&#x27;div&#x27;);
+box.style.cssText=&#x27;width:-moz-fit-content;width:fit-content;min-width:520px;max-width:900px;margin:4vh auto;background:#fff;color:#222;border-radius:10px;padding:14px 18px 16px;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:13px;line-height:1.45&#x27;;
+var drag=document.createElement(&#x27;div&#x27;);
+drag.textContent=&#x27;:::::: drag ::::::&#x27;;
+drag.style.cssText=&#x27;cursor:move;background:#eef1f5;color:#8a94a3;font-size:11px;text-align:center;padding:5px 0;border-radius:6px;margin:-4px 0 10px;user-select:none&#x27;;
+drag.onmousedown=function(e){e.preventDefault();var rc=box.getBoundingClientRect();var dx=e.clientX-rc.left,dy=e.clientY-rc.top;box.style.position=&#x27;fixed&#x27;;box.style.margin=&#x27;0&#x27;;box.style.width=rc.width+&#x27;px&#x27;;box.style.left=rc.left+&#x27;px&#x27;;box.style.top=rc.top+&#x27;px&#x27;;
+var mv=function(ev){box.style.left=(ev.clientX-dx)+&#x27;px&#x27;;box.style.top=(ev.clientY-dy)+&#x27;px&#x27;;};
+var up=function(){document.removeEventListener(&#x27;mousemove&#x27;,mv);document.removeEventListener(&#x27;mouseup&#x27;,up);};
+document.addEventListener(&#x27;mousemove&#x27;,mv);document.addEventListener(&#x27;mouseup&#x27;,up);};
+box.appendChild(drag);
+var head=document.createElement(&#x27;div&#x27;);
+head.style.cssText=&#x27;font-weight:bold;font-size:15px;color:#0277BD;margin-bottom:8px&#x27;;
+head.textContent=&#x27;Apply Credit [&#x27;+ACBUILD+&#x27;] - &#x27;+out.length+&#x27; credit&#x27;+(out.length===1?&#x27;&#x27;:&#x27;s&#x27;)+(out.length?&#x27;  |  total &#x27;+fmt(tot):&#x27;&#x27;);
+box.appendChild(head);
+var body=document.createElement(&#x27;div&#x27;);
+if(!out.length){
+body.innerHTML=&#x27;&lt;div style=&quot;padding:10px 2px;color:#555&quot;&gt;이 페이지에 크레딧이 없습니다.&lt;br&gt;Due 칸을 눌러 &lt;b&gt;오름차순(작은 값 먼저)&lt;/b&gt;으로 정렬하면 크레딧이 맨 위에 모입니다.&lt;br&gt;&lt;br&gt;No credits on this page. Sort by &lt;b&gt;Due&lt;/b&gt; ascending - credits move to the top.&lt;/div&gt;&#x27;;
+}else{
+var html=&#x27;&lt;table style=&quot;border-collapse:collapse;width:100%&quot;&gt;&lt;tr style=&quot;background:#f3f6f9;color:#555;font-size:11px&quot;&gt;&lt;th style=&quot;text-align:left;padding:5px 8px&quot;&gt;#&lt;/th&gt;&lt;th style=&quot;text-align:left;padding:5px 8px&quot;&gt;Type&lt;/th&gt;&lt;th style=&quot;text-align:left;padding:5px 8px&quot;&gt;Number / Ref&lt;/th&gt;&lt;th style=&quot;text-align:left;padding:5px 8px&quot;&gt;Customer&lt;/th&gt;&lt;th style=&quot;text-align:left;padding:5px 8px&quot;&gt;Date&lt;/th&gt;&lt;th style=&quot;text-align:right;padding:5px 8px&quot;&gt;Credit&lt;/th&gt;&lt;/tr&gt;&#x27;;
+for(i=0;i&lt;out.length;i++){var o=out[i];
+html+=&#x27;&lt;tr style=&quot;border-top:1px solid #e6e9ee&quot;&gt;&lt;td style=&quot;padding:5px 8px;color:#999&quot;&gt;&#x27;+(i+1)+&#x27;&lt;/td&gt;&#x27;
++&#x27;&lt;td style=&quot;padding:5px 8px&quot;&gt;&lt;span style=&quot;background:&#x27;+(o.t===&#x27;CN&#x27;?&#x27;#0277BD&#x27;:&#x27;#EF6C00&#x27;)+&#x27;;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px&quot;&gt;&#x27;+o.t+&#x27;&lt;/span&gt;&lt;/td&gt;&#x27;
++&#x27;&lt;td style=&quot;padding:5px 8px&quot;&gt;&#x27;+(o.u?(&#x27;&lt;a href=&quot;&#x27;+esc(o.u)+&#x27;&quot; target=&quot;_blank&quot; style=&quot;color:#0277BD;font-weight:bold;text-decoration:none&quot;&gt;&#x27;+esc(o.n||&#x27;(open)&#x27;)+&#x27;&lt;/a&gt;&#x27;):(&#x27;&lt;span style=&quot;color:#B71C1C&quot;&gt;&#x27;+esc(o.n||&#x27;(no link)&#x27;)+&#x27;&lt;/span&gt;&#x27;))+&#x27;&lt;/td&gt;&#x27;
++&#x27;&lt;td style=&quot;padding:5px 8px&quot;&gt;&#x27;+esc(o.c)+&#x27;&lt;/td&gt;&#x27;
++&#x27;&lt;td style=&quot;padding:5px 8px;color:#666&quot;&gt;&#x27;+esc(o.d)+&#x27;&lt;/td&gt;&#x27;
++&#x27;&lt;td style=&quot;padding:5px 8px;text-align:right;font-weight:bold&quot;&gt;&#x27;+fmt(o.v)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;;}
+html+=&#x27;&lt;/table&gt;&#x27;;
+body.innerHTML=html;
 }
-return [];
-};
-var nextCtl=function(){
-var cls=function(el){return (el&amp;&amp;typeof el.className===&#x27;string&#x27;)?el.className:&#x27;&#x27;;};
-var ok=function(el){if(!el||el.offsetParent===null)return 0;var e2=el;for(var d=0;d&lt;4&amp;&amp;e2;d++){if(/disabled/i.test(cls(e2)))return 0;e2=e2.parentElement;}return 1;};
-var pick=function(el){if(!el)return null;if(/^(a|button)$/i.test(el.tagName||&#x27;&#x27;))return el;var b=el.querySelector(&#x27;button,a&#x27;);return b||el;};
-var r0=document.querySelector(&#x27;a[rel=next]&#x27;);if(ok(r0))return r0;
-var E=[].slice.call(document.querySelectorAll(&#x27;a,button,table,td,div,span,li&#x27;));
-var pc=/(^|\s)(x-tbar-page-next|pager-next|pagination-next|page-next|next)(\s|$)/i;
-for(var i0=0;i0&lt;E.length;i0++){var el=E[i0];var al=(el.getAttribute&amp;&amp;(el.getAttribute(&#x27;aria-label&#x27;)||el.title))||&#x27;&#x27;;
-if((pc.test(cls(el))||/^next( page)?$/i.test(al))&amp;&amp;ok(el))return pick(el);}
-var A0=[].slice.call(document.querySelectorAll(&#x27;a&#x27;));
-for(var j0=0;j0&lt;A0.length;j0++){var a1=A0[j0];var t1=(a1.innerText||a1.textContent||&#x27;&#x27;).trim();if((/^(next|다음)$/i.test(t1)||t1===&#x27;›&#x27;||t1===&#x27;»&#x27;||t1===&#x27;&gt;&#x27;)&amp;&amp;ok(a1))return a1;}
-var cn=null;var mU=location.href.match(/[?&amp;](page|pagenumber|pageno|pg)=(\d+)/i);if(mU)cn=parseInt(mU[2],10);
-if(cn==null){var S0=[].slice.call(document.querySelectorAll(&#x27;span,strong,em,li,b,td&#x27;));for(var s1=0;s1&lt;S0.length;s1++){var tS=(S0[s1].innerText||S0[s1].textContent||&#x27;&#x27;).trim();if(/^\d{1,3}$/.test(tS)&amp;&amp;/current|selected|active/i.test(cls(S0[s1]))){cn=parseInt(tS,10);break;}}}
-if(cn==null)cn=1;
-for(var k1=0;k1&lt;A0.length;k1++){var a2=A0[k1];var t2=(a2.innerText||a2.textContent||&#x27;&#x27;).trim();if(/^\d{1,3}$/.test(t2)&amp;&amp;parseInt(t2,10)===cn+1&amp;&amp;ok(a2))return a2;}
-return null;
-};
-var analyze=function(st){
-var by={};
-st.rows.forEach(function(it){var c=it.c;(by[c]=by[c]||[]).push(it);});
-var nd=new Date();var cur=nd.getFullYear()*12+nd.getMonth();
-var R={gap:[],late:[],old:[],ok:[],tot:0,due:0};
-Object.keys(by).sort().forEach(function(c){
-var arr=by[c];R.tot++;
-var ms={};arr.forEach(function(it){ms[it.d]=1;});
-var keys=[];for(var kk in ms)keys.push(+kk);keys.sort(function(a,b){return a-b;});
-var tot=0;arr.forEach(function(it){tot+=it.a;});R.due+=tot;
-var mn=keys[0],mx=keys[keys.length-1];
-var holes=(mx-mn+1)&gt;keys.length;
-var past=keys.filter(function(k){return k&lt;=cur;});
-var run=0;
-if(past.length){var m2=past[past.length-1];run=1;while(ms[m2-run])run++;}
-var odmax=null;arr.forEach(function(it){if(it.od!=null&amp;&amp;(odmax==null||it.od&gt;odmax))odmax=it.od;});var o={c:c,arr:arr,keys:keys,ms:ms,tot:tot,run:run,mn:mn,mx:mx,cur:cur,od:odmax};
-if(holes){o.cat=&#x27;gap&#x27;;R.gap.push(o);}
-else if(past.length&amp;&amp;past[past.length-1]&lt;cur-1){o.cat=&#x27;old&#x27;;o.ago=cur-past[past.length-1];R.old.push(o);}
-else if(run&gt;=3){o.cat=&#x27;late&#x27;;R.late.push(o);}
-else{o.cat=&#x27;ok&#x27;;R.ok.push(o);}
-});
-var byOd=function(a,b){var A=(a.od==null?-1:a.od),B=(b.od==null?-1:b.od);if(B!==A)return B-A;if(a.mn!==b.mn)return a.mn-b.mn;return b.tot-a.tot;};
-R.gap.sort(byOd);
-R.late.sort(byOd);
-R.old.sort(byOd);
-R.ok.sort(byOd);
-return R;
-};
-var uniq=function(a){var s={},o=[];for(var i=0;i&lt;a.length;i++){if(!s[a[i]]){s[a[i]]=1;o.push(a[i]);}}return o;};
-var enrich=function(R,cb){
-try{
-if(typeof fetch===&#x27;undefined&#x27;){cb();return;}
-var targets=R.gap.concat(R.late,R.old,R.ok);
-if(!targets.length){cb();return;}
-/* B9 (10/08/2026): Xero 변경 대응 — 인보이스 페이지 스크래핑(React 셸로 변해 GUID 없음)과 /api/contacts/contacts(403) 둘 다 죽어서
-   contacts-mfe API로 교체: 검색=/api/contacts-mfe/v2/contacts?search= (name/id), 상세=/api/contacts-mfe/v2/contacts/{id} (primaryPersonEmailAddress).
-   헤더는 Bearer + xero-tenant-shortcode 필수(없으면 412/401). 클래식 Awaiting Payment 페이지에서도 토큰·shortcode 둘 다 있음 — 실제 확인됨. */
-var sc=null;
-try{var m0=location.pathname.match(/\/app\/(![A-Za-z0-9]{3,10})\//);if(m0)sc=m0[1];}catch(_e){}
-if(!sc){try{var scm=document.documentElement.innerHTML.match(/shortcode[&quot;&#x27;]?\s*[:=]\s*[&quot;&#x27;]?(!?[A-Za-z0-9]{3,10})/i);if(scm){sc=scm[1];if(sc.charAt(0)!==&#x27;!&#x27;)sc=&#x27;!&#x27;+sc;}}catch(_e){}}
-var tok=null;try{var ks=Object.keys(sessionStorage);for(var i0=0;i0&lt;ks.length;i0++){if(/^oidc\.user:/.test(ks[i0])){var oo=JSON.parse(sessionStorage.getItem(ks[i0]));if(oo&amp;&amp;oo.access_token){tok=oo.access_token;break;}}}}catch(_e){}
-if(!tok||!sc){cb();return;}
-var HD={&#x27;Accept&#x27;:&#x27;application/json&#x27;,&#x27;Authorization&#x27;:&#x27;Bearer &#x27;+tok,&#x27;xero-tenant-shortcode&#x27;:sc};
-var mkcu=function(o,g){o.gid=g;o.cu=location.origin+&#x27;/app/&#x27;+sc+&#x27;/contacts/contact/&#x27;+g+&#x27;/activity/invoices&#x27;;};
-var i=0;var LIM=Math.min(targets.length,200);
-var next=function(){
-if(window.__xpayStop){cb();return;}
-if(i&gt;=LIM){cb();return;}
-var o=targets[i];i++;
-widget(&#x27;Payment Review - contacts/emails &#x27;+i+&#x27;/&#x27;+LIM+&#x27;...&#x27;);
-fetch(&#x27;/api/contacts-mfe/v2/contacts?pageSize=5&amp;search=&#x27;+encodeURIComponent(o.c),{credentials:&#x27;include&#x27;,headers:HD})
-.then(function(r){return r.ok?r.json():null;})
-.then(function(j){
-var cs=(j&amp;&amp;j.contacts)||[];var cid=null;
-for(var x=0;x&lt;cs.length;x++){if(String(cs[x].name||&#x27;&#x27;).trim()===o.c){cid=cs[x].id;break;}}
-if(!cid){var lc=o.c.toLowerCase();for(var y=0;y&lt;cs.length;y++){if(String(cs[y].name||&#x27;&#x27;).trim().toLowerCase()===lc){cid=cs[y].id;break;}}}
-if(!cid&amp;&amp;cs.length===1)cid=cs[0].id;
-if(cid&amp;&amp;!o.cu)mkcu(o,cid);
-var did=cid||o.gid;
-if(did&amp;&amp;!o.em){
-fetch(&#x27;/api/contacts-mfe/v2/contacts/&#x27;+did,{credentials:&#x27;include&#x27;,headers:HD})
-.then(function(r2){return r2.ok?r2.json():null;})
-.then(function(d){var c2=d&amp;&amp;(d.contact||d);if(c2&amp;&amp;!o.em)o.em=String(c2.primaryPersonEmailAddress||c2.emailAddress||&#x27;&#x27;).trim();setTimeout(next,80);})
-[&#x27;catch&#x27;](function(){setTimeout(next,80);});
-return;
-}
-setTimeout(next,80);
-})
-[&#x27;catch&#x27;](function(){setTimeout(next,80);});
-};
-next();
-}catch(_e){cb();}
-};
-var report=function(st,R,stopped){try{
-var h=&#x27;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Payment Review&lt;/title&gt;&lt;style&gt;&#x27;
-+&#x27;body{font:13px/1.5 &quot;Helvetica Neue&quot;,Helvetica,Arial,sans-serif;color:#222;margin:0;background:#f2f4f5}&#x27;
-+&#x27;.hd{background:#13B5EA;color:#fff;padding:16px 24px}&#x27;
-+&#x27;.hd .t{font-size:20px;font-weight:bold}&#x27;
-+&#x27;.hd small{display:block;font-size:12px;opacity:.95;margin-top:3px}&#x27;
-+&#x27;.wrap{max-width:1080px;margin:0 auto;padding:18px 24px}&#x27;
-+&#x27;.sum{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 8px}&#x27;
-+&#x27;.card{background:#fff;border:1px solid #d9dee3;border-radius:4px;padding:10px 16px;min-width:110px}&#x27;
-+&#x27;.card b{display:block;font-size:20px;font-weight:bold}&#x27;
-+&#x27;.card span{color:#666;font-size:12px}&#x27;
-+&#x27;.card.red b{color:#c1272d}.card.or b{color:#e65100}.card.ye b{color:#a07c00}.card.bl b{color:#1266a5}&#x27;
-+&#x27;h2{font-size:15px;margin:26px 0 8px;padding-left:9px;border-left:4px solid #13B5EA}&#x27;
-+&#x27;h2.red{border-color:#c1272d}h2.or{border-color:#e65100}h2.ye{border-color:#c9a400}h2.bl{border-color:#1266a5}&#x27;
-+&#x27;h2 small{color:#777;font-weight:normal;font-size:12px}&#x27;
-+&#x27;table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d9dee3}&#x27;
-+&#x27;th{text-align:left;font-size:12px;color:#555;background:#f7f8f9;border-bottom:2px solid #d9dee3;padding:8px 10px}&#x27;
-+&#x27;td{border-bottom:1px solid #e9edf0;padding:7px 10px;vertical-align:top}&#x27;
-+&#x27;tr.cust td{background:#eef6fb;font-weight:bold;border-top:2px solid #cfe3ef}&#x27;
-+&#x27;.tag{font-weight:bold;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;white-space:nowrap}&#x27;
-+&#x27;.tag.red{background:#c1272d;color:#fff}.tag.or{background:#e65100;color:#fff}.tag.ye{background:#c9a400;color:#fff}.tag.bl{background:#1266a5;color:#fff}&#x27;
-+&#x27;tr.gapr td{color:#2e7d32;font-style:italic;background:#f4faf4}&#x27;
-+&#x27;.od1{color:#8a949e}.od2{color:#e65100;font-weight:bold}.od3{color:#c1272d;font-weight:bold}&#x27;
-+&#x27;td.amt,th.amt{text-align:right;white-space:nowrap}&#x27;
-+&#x27;td.em{font-size:12px;word-break:break-all;max-width:190px}&#x27;
-+&#x27;a{color:#1266a5;text-decoration:none}a:hover{text-decoration:underline}&#x27;
-+&#x27;.ft{color:#888;font-size:11px;margin:22px 0}&#x27;
-+&#x27;.none{background:#fff;border:1px solid #d9dee3;padding:14px}&#x27;
-+&#x27;.pdfck{transform:scale(1.15);margin-right:6px;vertical-align:-2px;cursor:pointer}&#x27;
-+&#x27;.pbar{position:sticky;top:0;background:#fff;border:1px solid #d9dee3;border-radius:4px;padding:8px 12px;margin:0 0 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.06)}&#x27;
-+&#x27;.pbar button{border:none;border-radius:4px;padding:7px 14px;font-weight:bold;cursor:pointer;font-size:12px}&#x27;
-+&#x27;.pbtn{background:#0B6E4F;color:#fff}.psel{background:#e3e8ec;color:#333}&#x27;
-+&#x27;&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;hd&quot;&gt;&lt;div class=&quot;t&quot;&gt;Payment Review &lt;span style=&quot;font-size:12px;opacity:.75&quot;&gt;[&#x27;+PRBUILD+&#x27;]&lt;/span&gt;&#x27;+(stopped?&#x27; (stopped - partial results)&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;small&gt;&#x27;+new Date().toLocaleString()+&#x27; · Awaiting Payment · &#x27;+(st.rf&amp;&amp;st.rf.length?&#x27;Ref: &#x27;+st.rf.join(&#x27;, &#x27;)+&#x27; · &#x27;:&#x27;&#x27;)+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers&lt;/small&gt;&lt;/div&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;wrap&quot;&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;sum&quot;&gt;&#x27;
-+&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;&#x27;+st.rows.length+&#x27;&lt;/b&gt;&lt;span&gt;Total No of Invoices&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card&quot;&gt;&lt;b&gt;$&#x27;+fmt(R.due)+&#x27;&lt;/b&gt;&lt;span&gt;Total Outstanding&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card red&quot;&gt;&lt;b&gt;&#x27;+R.gap.length+&#x27;&lt;/b&gt;&lt;span&gt;Skipped Payment&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card or&quot;&gt;&lt;b&gt;&#x27;+R.late.length+&#x27;&lt;/b&gt;&lt;span&gt;3+ months&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card ye&quot;&gt;&lt;b&gt;&#x27;+R.old.length+&#x27;&lt;/b&gt;&lt;span&gt;2+ months&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;div class=&quot;card bl&quot;&gt;&lt;b&gt;&#x27;+R.ok.length+&#x27;&lt;/b&gt;&lt;span&gt;Recent&lt;/span&gt;&lt;/div&gt;&#x27;
-+&#x27;&lt;/div&gt;&#x27;;
-h+=&#x27;&lt;div class=&quot;pbar&quot;&gt;&lt;button class=&quot;pbtn&quot; style=&quot;background:#1D6F42&quot; onclick=&quot;xcsv()&quot;&gt;Excel&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(1)&quot;&gt;Select all&lt;/button&gt;&lt;button class=&quot;psel&quot; onclick=&quot;xpdfSel(0)&quot;&gt;Clear&lt;/button&gt;&lt;button class=&quot;pbtn&quot; id=&quot;xpdfgo&quot; onclick=&quot;xpdfGo()&quot;&gt;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&lt;/button&gt;&lt;span id=&quot;xpdfmsg&quot; style=&quot;font-size:12px;color:#666&quot;&gt;tick invoices below - each downloads as its own PDF&lt;/span&gt;&lt;/div&gt;&#x27;;
-var odHtml=function(d){if(d==null)return &#x27;&#x27;;var c=d&gt;=90?&#x27;od3&#x27;:(d&gt;=30?&#x27;od2&#x27;:&#x27;od1&#x27;);return &#x27;&lt;span class=&quot;&#x27;+c+&#x27;&quot;&gt;&#x27;+d+&#x27; days&lt;/span&gt;&#x27;;};
-var csvEsc=function(v){var s=String(v==null?&#x27;&#x27;:v);return /[&quot;,\n\r]/.test(s)?&#x27;&quot;&#x27;+s.replace(/&quot;/g,&#x27;&quot;&quot;&#x27;)+&#x27;&quot;&#x27;:s;};
-var csvOf=function(R){
-var rows=[[&#x27;Section&#x27;,&#x27;Customer&#x27;,&#x27;Status&#x27;,&#x27;Month&#x27;,&#x27;Invoice&#x27;,&#x27;Reference&#x27;,&#x27;Date&#x27;,&#x27;Overdue days&#x27;,&#x27;Due AUD&#x27;,&#x27;Email&#x27;]];
-var add=function(list,name,tagf){list.forEach(function(o){var tg=tagf(o);o.arr.slice().sort(function(a,b){if(a.d!==b.d)return a.d-b.d;var da=pdate(a.dt),db=pdate(b.dt);if(da&amp;&amp;db&amp;&amp;da-db)return da-db;return (a.n||&#x27;&#x27;)&lt;(b.n||&#x27;&#x27;)?-1:1;}).forEach(function(it){rows.push([name,o.c,tg,mtxt(it.d),it.n||&#x27;&#x27;,it.r||&#x27;&#x27;,it.dt||&#x27;&#x27;,(it.od==null?&#x27;&#x27;:it.od),it.a.toFixed(2),o.em||&#x27;&#x27;]);});});};
-add(R.gap,&#x27;Skipped Payment&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
-add(R.late,&#x27;3+ months&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
-add(R.old,&#x27;2+ months&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
-add(R.ok,&#x27;Recent&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
-return &#x27;\ufeff&#x27;+rows.map(function(r){return r.map(csvEsc).join(&#x27;,&#x27;);}).join(&#x27;\r\n&#x27;);};
-var refHtml=function(r){var e=esc(r);return e.replace(/^(\s*)(ww)/i,&#x27;$1&lt;span style=&quot;color:#c1272d;font-weight:bold&quot;&gt;$2&lt;/span&gt;&#x27;);};
-var ckb=function(it){var m=String(it.u||&#x27;&#x27;).match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);return m?&#x27;&lt;input type=&quot;checkbox&quot; class=&quot;pdfck&quot; data-id=&quot;&#x27;+m[0]+&#x27;&quot; data-num=&quot;&#x27;+esc(it.n||(&#x27;INV_&#x27;+m[0].slice(0,8)))+&#x27;&quot;&gt;&#x27;:&#x27;&#x27;;};
-var rowsFor=function(o){
-var out=&#x27;&#x27;;var byM={};o.arr.forEach(function(it){(byM[it.d]=byM[it.d]||[]).push(it);});
-for(var k=o.mn;k&lt;=o.mx;k++){
-if(byM[k]){byM[k].sort(function(a,b){var da=pdate(a.dt),db=pdate(b.dt);if(da&amp;&amp;db&amp;&amp;da-db)return da-db;if((a.od!=null)&amp;&amp;(b.od!=null)&amp;&amp;b.od!==a.od)return b.od-a.od;return (a.n||&#x27;&#x27;)&lt;(b.n||&#x27;&#x27;)?-1:1;}).forEach(function(it){
-out+=&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+ckb(it)+mtxt(k)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+(it.n?(it.u?&#x27;&lt;a href=&quot;&#x27;+esc(it.u)+&#x27;&quot; target=&quot;_blank&quot;&gt;&#x27;+esc(it.n)+&#x27;&lt;/a&gt;&#x27;:esc(it.n)):&#x27;&#x27;)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+refHtml(it.r)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+esc(it.dt)+&#x27;&lt;/td&gt;&lt;td&gt;&#x27;+odHtml(it.od)+&#x27;&lt;/td&gt;&lt;td class=&quot;amt&quot;&gt;&#x27;+fmt(it.a)+&#x27;&lt;/td&gt;&lt;td class=&quot;em&quot;&gt;&lt;/td&gt;&lt;/tr&gt;&#x27;;});}
-else{var k2=k;while(k2+1&lt;=o.mx&amp;&amp;!byM[k2+1])k2++;
-var anyD=false;if(o.pd){for(var kk=k;kk&lt;=k2;kk++){if(o.pd[kk]&amp;&amp;o.pd[kk].length){anyD=true;break;}}}
-if(anyD){for(var kk2=k;kk2&lt;=k2;kk2++){var ds=(o.pd&amp;&amp;o.pd[kk2]&amp;&amp;o.pd[kk2].length)?uniq(o.pd[kk2]).join(&#x27;, &#x27;):null;
-out+=&#x27;&lt;tr class=&quot;gapr&quot;&gt;&lt;td colspan=&quot;7&quot;&gt;&#x27;+mtxt(kk2)+&#x27; · Paid&#x27;+(ds?&#x27; &#x27;+ds:&#x27;&#x27;)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;;}}
-else{out+=&#x27;&lt;tr class=&quot;gapr&quot;&gt;&lt;td colspan=&quot;7&quot;&gt;&#x27;+(k2&gt;k?(mtxt(k)+&#x27; - &#x27;+mtxt(k2)):mtxt(k))+&#x27; · Paid&lt;/td&gt;&lt;/tr&gt;&#x27;;}
-k=k2;}}
-return out;};
-var section=function(list,cls,title,sub,tagf){
-if(!list.length)return;
-h+=&#x27;&lt;h2 class=&quot;&#x27;+cls+&#x27;&quot;&gt;&#x27;+title+&#x27; (&#x27;+list.length+&#x27;) &lt;small&gt;&#x27;+sub+&#x27;&lt;/small&gt;&lt;/h2&gt;&#x27;;
-h+=&#x27;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th style=&quot;width:86px&quot;&gt;Month&lt;/th&gt;&lt;th style=&quot;width:120px&quot;&gt;Invoice&lt;/th&gt;&lt;th&gt;Reference&lt;/th&gt;&lt;th style=&quot;width:110px&quot;&gt;Date&lt;/th&gt;&lt;th style=&quot;width:96px&quot;&gt;Overdue by&lt;/th&gt;&lt;th class=&quot;amt&quot; style=&quot;width:110px&quot;&gt;Due AUD&lt;/th&gt;&lt;th style=&quot;width:180px&quot;&gt;Email&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;;
-list.forEach(function(o){var fu=o.cu||(o.arr.filter(function(x){return x.u;})[0]||{}).u;var op=fu?&#x27; &lt;a href=&quot;&#x27;+esc(fu)+&#x27;&quot; target=&quot;_blank&quot; style=&quot;font-size:11px&quot;&gt;open in Xero &amp;#8599;&lt;/a&gt;&#x27;:&#x27;&#x27;;h+=&#x27;&lt;tr class=&quot;cust&quot;&gt;&lt;td colspan=&quot;5&quot;&gt;&#x27;+esc(o.c)+&#x27; &lt;span class=&quot;tag &#x27;+cls+&#x27;&quot;&gt;&#x27;+tagf(o)+&#x27;&lt;/span&gt;&#x27;+op+&#x27;&lt;/td&gt;&lt;td class=&quot;amt&quot;&gt;&#x27;+fmt(o.tot)+&#x27;&lt;/td&gt;&lt;td class=&quot;em&quot;&gt;&#x27;+(o.em?&#x27;&lt;a href=&quot;mailto:&#x27;+esc(o.em)+&#x27;&quot; title=&quot;Email in Outlook&quot;&gt;&#x27;+esc(o.em)+&#x27;&lt;/a&gt;&#x27;:&#x27;&#x27;)+&#x27;&lt;/td&gt;&lt;/tr&gt;&#x27;+rowsFor(o);});
-h+=&#x27;&lt;/tbody&gt;&lt;/table&gt;&#x27;;};
-section(R.gap,&#x27;red&#x27;,&#x27;Skipped Payment&#x27;,&#x27;unpaid month(s) followed by paid months - the customer likely missed an invoice&#x27;,function(o){return &#x27;first unpaid &#x27;+mtxt(o.mn);});
-section(R.late,&#x27;or&#x27;,&#x27;3+ months&#x27;,&#x27;consecutive unpaid months up to now&#x27;,function(o){return o.run+&#x27; months in a row&#x27;;});
-section(R.old,&#x27;ye&#x27;,&#x27;2+ months&#x27;,&#x27;no newer invoice in the list after the last unpaid month (service ended? paid since?)&#x27;,function(o){return &#x27;last unpaid &#x27;+mtxt(o.keys[o.keys.length-1])+&#x27; (&#x27;+o.ago+&#x27; mo ago)&#x27;;});
-section(R.ok,&#x27;bl&#x27;,&#x27;Recent&#x27;,&#x27;unpaid in the last 1-2 months only - normal cycle, listed so every overdue invoice is visible&#x27;,function(o){return (o.run||1)+&#x27; mo unpaid&#x27;;});
-if(!R.gap.length&amp;&amp;!R.late.length&amp;&amp;!R.old.length&amp;&amp;!R.ok.length)h+=&#x27;&lt;p class=&quot;none&quot;&gt;No unpaid invoices found.&lt;/p&gt;&#x27;;
-h+=&#x27;&lt;p class=&quot;ft&quot;&gt;Generated from the Awaiting Payment list by Payment Review. Every overdue invoice is listed - including customers with only the last 1-2 months unpaid (&#x27;+R.ok.length+&#x27;).&lt;/p&gt;&#x27;;
-h+=&#x27;&lt;/div&gt;&#x27;;
-h+=&#x27;&lt;script&gt;&#x27;
-+&#x27;var CSVTXT=&#x27;+JSON.stringify(csvOf(R))+&#x27;;&#x27;
-+&#x27;function xcsv(){var b=new Blob([CSVTXT],{type:&quot;text/csv;charset=utf-8&quot;});var a=document.createElement(&quot;a&quot;);a.href=URL.createObjectURL(b);a.download=&quot;Payment_Review_&#x27;+ts()+&#x27;.csv&quot;;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(e){}},1500);}&#x27;
-+&#x27;var XORG=&quot;https://go.xero.com&quot;;&#x27;
-+&#x27;function xpdfAll(){return [].slice.call(document.querySelectorAll(&quot;.pdfck&quot;));}&#x27;
-+&#x27;function xpdfSel(v){xpdfAll().forEach(function(c){c.checked=!!v;});xpdfCnt();}&#x27;
-+&#x27;function xpdfCnt(){var n=xpdfAll().filter(function(c){return c.checked;}).length;var e=document.getElementById(&quot;xpdfn&quot;);if(e)e.textContent=n;return n;}&#x27;
-+&#x27;document.addEventListener(&quot;change&quot;,function(e){if(e.target&amp;&amp;/pdfck/.test(e.target.className||&quot;&quot;))xpdfCnt();});&#x27;
-+&#x27;var xpdfLast=null;&#x27;
-+&#x27;document.addEventListener(&quot;click&quot;,function(e){var t=e.target;if(!t||!/pdfck/.test(t.className||&quot;&quot;))return;var all=xpdfAll();var idx=all.indexOf(t);if(e.shiftKey&amp;&amp;xpdfLast!==null&amp;&amp;xpdfLast&gt;=0&amp;&amp;idx&gt;=0){var a=Math.min(xpdfLast,idx),b=Math.max(xpdfLast,idx);for(var i=a;i&lt;=b;i++)all[i].checked=t.checked;}xpdfLast=idx;xpdfCnt();});&#x27;
-+&#x27;document.addEventListener(&quot;mousedown&quot;,function(e){if(e.shiftKey&amp;&amp;e.target&amp;&amp;/pdfck/.test(e.target.className||&quot;&quot;))e.preventDefault();});&#x27;
-+&#x27;function xpdfMsg(t){var e=document.getElementById(&quot;xpdfmsg&quot;);if(e)e.textContent=t;}&#x27;
-+&#x27;var xpdfBusy=0;&#x27;
-+&#x27;function xpdfGo(){&#x27;
-+&#x27;if(xpdfBusy){xpdfBusy=0;return;}&#x27;
-+&#x27;var picks=xpdfAll().filter(function(c){return c.checked;}).map(function(c){return {id:c.getAttribute(&quot;data-id&quot;),num:c.getAttribute(&quot;data-num&quot;)};});&#x27;
-+&#x27;if(!picks.length){alert(&quot;No invoices ticked - tick the checkboxes first. (원하는 인보이스에 먼저 체크하세요)&quot;);return;}&#x27;
-+&#x27;var ok=false;try{ok=(location.protocol===&quot;blob:&quot;)||(location.origin===&quot;https://go.xero.com&quot;);}catch(_e){}&#x27;
-+&#x27;if(!ok){var w9=null;try{w9=window.open(XORG+&quot;/AccountsReceivable/Search.aspx#xpdf=&quot;+encodeURIComponent(JSON.stringify(picks)),&quot;_blank&quot;);}catch(_e9){}&#x27;
-+&#x27;if(w9){alert(&quot;A Xero tab has opened - the PDFs download automatically there (needs Xero login + the XERO bar).\\n(저장된 파일이라 Xero 탭을 새로 열었어요 - 그 탭에서 자동 다운로드됩니다. Xero 로그인 + XERO 바 필요)&quot;);}&#x27;
-+&#x27;else{alert(&quot;Popup blocked - allow pop-ups for this page and press the button again.\\n(팝업이 차단됐어요 - 이 페이지의 팝업을 허용하고 다시 눌러주세요)&quot;);}&#x27;
-+&#x27;return;}&#x27;
-+&#x27;var btn=document.getElementById(&quot;xpdfgo&quot;);&#x27;
-+&#x27;xpdfBusy=1;btn.textContent=&quot;STOP&quot;;&#x27;
-+&#x27;var call=function(method,body){return fetch(XORG+&quot;/ajaxpro/AccountsReceivable_Search.ashx&quot;,{method:&quot;POST&quot;,credentials:&quot;include&quot;,headers:{&quot;Content-Type&quot;:&quot;text/plain; charset=UTF-8&quot;,&quot;X-AjaxPro-Method&quot;:method},body:JSON.stringify(body)}).then(function(r){return r.text();});};&#x27;
-+&#x27;var sleep=function(m){return new Promise(function(r){setTimeout(r,m);});};&#x27;
-+&#x27;var okc=0,failc=0,fails=[];&#x27;
-+&#x27;var fin=function(stopped){xpdfBusy=0;btn.innerHTML=&quot;Download PDFs (&lt;span id=xpdfn&gt;0&lt;/span&gt;)&quot;;xpdfCnt();xpdfMsg(&quot;&quot;);alert(&quot;PDF download&quot;+(stopped?&quot; stopped&quot;:&quot; done&quot;)+&quot;: &quot;+okc+&quot; saved&quot;+(failc?&quot;, &quot;+failc+&quot; failed (&quot;+fails.join(&quot;, &quot;)+&quot;)&quot;:&quot;&quot;)+&quot;.\\nCheck your Downloads folder.&quot;);};&#x27;
-+&#x27;var run=function(i){&#x27;
-+&#x27;if(!xpdfBusy){fin(1);return;}&#x27;
-+&#x27;if(i&gt;=picks.length){fin(0);return;}&#x27;
-+&#x27;var p=picks[i];&#x27;
-+&#x27;xpdfMsg((i+1)+&quot;/&quot;+picks.length+&quot; - &quot;+p.num+&quot; ...&quot;);&#x27;
-+&#x27;call(&quot;PrintInvoices&quot;,[[p.id],false]).then(function(t){&#x27;
-+&#x27;var jid=(t.match(/&quot;Result&quot;:&quot;(\\d+)&quot;/)||[])[1];&#x27;
-+&#x27;if(!jid)throw new Error(&quot;no job&quot;);&#x27;
-+&#x27;var poll=function(n){&#x27;
-+&#x27;if(!xpdfBusy)throw new Error(&quot;stop&quot;);&#x27;
-+&#x27;return call(&quot;GetPrintJobStatus&quot;,[jid]).then(function(s){&#x27;
-+&#x27;if(s.indexOf(&quot;JOBSTATUS/COMPLETED&quot;)&gt;=0)return jid;&#x27;
-+&#x27;if(/FAIL|ERROR/i.test(s)&amp;&amp;!/IsValid.:true/.test(s))throw new Error(&quot;job failed&quot;);&#x27;
-+&#x27;if(n&lt;=0)throw new Error(&quot;timeout&quot;);&#x27;
-+&#x27;return sleep(700).then(function(){return poll(n-1);});&#x27;
-+&#x27;});};&#x27;
-+&#x27;return poll(40);&#x27;
-+&#x27;}).then(function(jid){&#x27;
-+&#x27;return fetch(XORG+&quot;/AccountsReceivable/InvoiceDownloader.aspx?PrintJobId=&quot;+jid,{credentials:&quot;include&quot;}).then(function(r){&#x27;
-+&#x27;if(!r.ok)throw new Error(&quot;dl &quot;+r.status);return r.blob();&#x27;
-+&#x27;}).then(function(b){&#x27;
-+&#x27;if(b&amp;&amp;b.size&gt;500){var a=document.createElement(&quot;a&quot;);a.href=URL.createObjectURL(b);a.download=(p.num||&quot;invoice&quot;).replace(/[^A-Za-z0-9._ -]+/g,&quot; &quot;).trim()+&quot;.pdf&quot;;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},2000);okc++;}else{throw new Error(&quot;empty&quot;);}&#x27;
-+&#x27;});&#x27;
-+&#x27;})[&quot;catch&quot;](function(e){if(String(e&amp;&amp;e.message)===&quot;stop&quot;){fin(1);return;}failc++;fails.push(p.num);}).then(function(){&#x27;
-+&#x27;if(!xpdfBusy)return;&#x27;
-+&#x27;return sleep(400).then(function(){run(i+1);});&#x27;
-+&#x27;});&#x27;
-+&#x27;};&#x27;
-+&#x27;run(0);&#x27;
-+&#x27;}&#x27;
-+&#x27;&lt;/script&gt;&#x27;;
-h+=&#x27;&lt;/body&gt;&lt;/html&gt;&#x27;;
-dl(new Blob([h],{type:&#x27;text/html&#x27;}),&#x27;Payment_Review_&#x27;+ts()+&#x27;.html&#x27;);
-try{var _bu=URL.createObjectURL(new Blob([h],{type:&#x27;text/html&#x27;}));var _w8=null;try{_w8=window.open(_bu,&#x27;_blank&#x27;);}catch(_e8){}if(!_w8){var _ob=document.createElement(&#x27;div&#x27;);_ob.textContent=&#x27;OPEN Payment Review report - click / 리포트 열기 (팝업 차단됨 - 클릭)&#x27;;_ob.style.cssText=&#x27;position:fixed;top:8px;right:8px;z-index:2147483647;background:#0F6CBD;color:#fff;font:bold 14px Arial;padding:12px 16px;border-radius:8px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4)&#x27;;_ob.onclick=function(){try{window.open(_bu,&#x27;_blank&#x27;);}catch(_e3){}try{_ob.remove();}catch(_e4){}};document.body.appendChild(_ob);setTimeout(function(){try{_ob.remove();}catch(_e5){}},600000);}setTimeout(function(){try{URL.revokeObjectURL(_bu);}catch(_e){}},600000);}catch(_e){}
-}catch(_e){}};
-var finish=function(st,stopped){
-if(window.__xpayFin)return;window.__xpayFin=1;
-if(!st.rows.length){window.__xpayFin=0;stopAll();alert(&#x27;No unpaid invoices found.\nOpen Sales &gt; Invoices &gt; Awaiting Payment first.&#x27;);return;}
-var R=analyze(st);
-widget(&#x27;Payment Review - finding contacts &amp; emails...&#x27;);
-enrich(R,function(){
-report(st,R,stopped);
-stopAll();
-alert(&#x27;Payment Review done&#x27;+(stopped?&#x27; (stopped)&#x27;:&#x27;&#x27;)+&#x27;: &#x27;+(st.pg&gt;1?st.pg+&#x27; pages · &#x27;:&#x27;&#x27;)+st.rows.length+&#x27; invoices · &#x27;+R.tot+&#x27; customers\n- Skipped payments: &#x27;+R.gap.length+&#x27;\n- 3+ months behind: &#x27;+R.late.length+&#x27;\n- Old unpaid: &#x27;+R.old.length+&#x27;\nThe HTML report is in your Downloads and opened in a new tab.&#x27;);
-window.__xpayFin=0;
-});
-};
-var colGo=function(st,its){
-if(localStorage.getItem(LSR)!==&#x27;1&#x27;){window.__xpayBusy=0;return;}
-if(!st.seen){st.seen={};st.rows.forEach(function(x){st.seen[x.k]=1;});}
-var _rfre=null;
-if(st.rf&amp;&amp;st.rf.length){_rfre=st.rf.map(function(s){return new RegExp(&#x27;(^|[^A-Za-z0-9])&#x27;+s.replace(/[.*+?^${}()|[\]\\]/g,&#x27;\\$&amp;&#x27;)+&#x27;([^A-Za-z0-9]|$)&#x27;,&#x27;i&#x27;);});}
-var fr=0;its.forEach(function(x){if(st.seen[x.k])return;st.seen[x.k]=1;fr++;
-if(_rfre){var _rt=String(x.r||&#x27;&#x27;),_hit=0;for(var _q=0;_q&lt;_rfre.length;_q++){if(_rfre[_q].test(_rt)){_hit=1;break;}}if(!_hit)return;}
-st.rows.push(x);});
-if(st.pg&gt;=1&amp;&amp;!fr){finish(st,0);return;}
-st.pg=(st.pg||0)+1;
-try{localStorage.setItem(LSQ,JSON.stringify(st));}catch(_e){}
-widget(&#x27;Payment Review - page &#x27;+st.pg+&#x27; · &#x27;+st.rows.length+&#x27; invoices...&#x27;);
-var nx=(st.all&amp;&amp;st.pg&lt;99)?nextCtl():null;
-if(!nx){finish(st,0);return;}
-var f1=(its[0]||{}).k||&#x27;&#x27;;
-try{nx.click();}catch(_e){finish(st,0);return;}
-var w1=0;var tv=setInterval(function(){
-if(localStorage.getItem(LSR)!==&#x27;1&#x27;){clearInterval(tv);window.__xpayBusy=0;return;}
-w1+=500;var c1=colRows();var u1=(c1[0]||{}).k||&#x27;&#x27;;
-if(u1&amp;&amp;u1!==f1){clearInterval(tv);colGo(st,c1);return;}
-if(w1&gt;=15000){clearInterval(tv);finish(st,0);return;}
-},500);
-};
-if(running){
-if(job&amp;&amp;job.ph===&#x27;col&#x27;){
-var mineC=(function(){try{return sessionStorage.getItem(&#x27;xpay_tab&#x27;)===job.tab;}catch(_e){return true;}})();
-if(window.__xpayAuto&amp;&amp;!mineC)return;
-if(!mineC){if(!confirm(&#x27;Payment Review is running in another tab. Continue in this tab?&#x27;))return;try{sessionStorage.setItem(&#x27;xpay_tab&#x27;,job.tab);}catch(_e){}}
-if(window.__xpayBusy)return;
-window.__xpayBusy=1;
-var wC=0;var tC=setInterval(function(){if(localStorage.getItem(LSR)!==&#x27;1&#x27;){clearInterval(tC);window.__xpayBusy=0;return;}wC+=500;var iC=colRows();if(iC.length||wC&gt;=20000){clearInterval(tC);colGo(job,iC);}},500);
-return;}
-stopAll();return;
-}
-var items=colRows();
-if(!items.length){alert(&#x27;Cannot see the invoice list.\nOpen Sales &gt; Invoices &gt; Awaiting Payment first, then run Payment Review.&#x27;);return;}
-window.__xpayStop=0;
-var _mode=prompt(&#x27;PAYMENT REVIEW - customers whose payments stopped mid-way\n\n* Use the Awaiting Payment tab. Other tabs give wrong results.\n\nType 1 or 2:\n  1 = THIS LIST ONLY (what you see now - use after a search/filter)\n  2 = ALL PAGES (this page to the last page)\n\nGroups unpaid invoices by customer:\n- [X] Skipped payments   - [!] 3+ months behind   - [?] Old unpaid\n- Only the last 1-2 months unpaid = OK (not listed)&#x27;,&#x27;1&#x27;);
-if(_mode===null)return;
-_mode=String(_mode).trim();
-if(_mode!==&#x27;1&#x27;&amp;&amp;_mode!==&#x27;2&#x27;){alert(&#x27;Cancelled - type 1 or 2.&#x27;);return;}
-window.__xpayAllPages=(_mode===&#x27;2&#x27;);
-var _rfdef=&#x27;&#x27;;try{_rfdef=localStorage.getItem(&#x27;xpay_rf&#x27;)||&#x27;&#x27;;}catch(_e){}
-var _rfin=prompt(&#x27;Reference filter - comma separated, empty = ALL invoices\n(ex: ww1, ww2, ww3 -&gt; only these refs; wws4 etc excluded)&#x27;,_rfdef||&#x27;ww1, ww2, ww3&#x27;);
-if(_rfin===null)return;
-_rfin=_rfin.replace(/^\s+|\s+$/g,&#x27;&#x27;);
-try{localStorage.setItem(&#x27;xpay_rf&#x27;,_rfin);}catch(_e){}
-var _rft=_rfin?_rfin.split(&#x27;,&#x27;).map(function(s){return s.replace(/^\s+|\s+$/g,&#x27;&#x27;);}).filter(function(s){return s;}):[];
-var tabC=String(Math.random()).slice(2);
-try{sessionStorage.setItem(&#x27;xpay_tab&#x27;,tabC);}catch(_e){}
-var stC={ph:&#x27;col&#x27;,rows:[],tab:tabC,pg:0,lu:location.href,all:window.__xpayAllPages?1:0,rf:_rft};
-localStorage.setItem(LSQ,JSON.stringify(stC));
-localStorage.setItem(LSR,&#x27;1&#x27;);
-window.__xpayBusy=1;
-colGo(stC,items);
-}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">Payment Review</a> <a class="bm" data-d="31/07/26" style="background:#0B6E4F" href="javascript:(function(){try{
+box.appendChild(body);
+var bar=document.createElement(&#x27;div&#x27;);
+bar.style.cssText=&#x27;text-align:right;position:sticky;bottom:0;background:#fff;padding-top:12px;margin-top:6px;border-top:1px solid #eee&#x27;;
+var mkb=function(txt,bg){var b=document.createElement(&#x27;button&#x27;);b.textContent=txt;b.style.cssText=&#x27;background:&#x27;+bg+&#x27;;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:bold;margin-left:8px&#x27;;return b;};
+var close=function(){if(wrap.parentNode)wrap.parentNode.removeChild(wrap);};
+if(!out.length){var sb=mkb(&#x27;Due 정렬 / Sort by Due&#x27;,&#x27;#0277BD&#x27;);sb.onclick=function(){if(!sortA())alert(&#x27;Due 정렬 링크를 찾지 못했습니다. 표의 Due 제목을 직접 눌러주세요.\nDue header link not found - click the Due column header.&#x27;);};bar.appendChild(sb);}
+else{
+var ob=mkb(&#x27;전체 열기 / Open all (&#x27;+out.length+&#x27;)&#x27;,&#x27;#0277BD&#x27;);
+ob.onclick=function(){var blocked=0;for(var j=0;j&lt;out.length;j++){if(!out[j].u)continue;var w=window.open(out[j].u,&#x27;_blank&#x27;);if(!w)blocked++;}
+if(blocked)alert(blocked+&#x27;개가 팝업 차단으로 열리지 않았습니다. 주소창 오른쪽의 팝업 아이콘에서 허용하거나, 목록에서 하나씩 클릭해 주세요.\n&#x27;+blocked+&#x27; blocked by the popup blocker - allow popups, or click them one by one.&#x27;);};
+bar.appendChild(ob);}
+var cb=mkb(&#x27;닫기 / Close&#x27;,&#x27;#8a94a3&#x27;);cb.onclick=close;bar.appendChild(cb);
+box.appendChild(bar);
+wrap.appendChild(box);
+wrap.onclick=function(e){if(e.target===wrap)close();};
+document.body.appendChild(wrap);
+}catch(e){alert(&#x27;Error: &#x27;+e.message);}})()">Apply Credit</a> <a class="bm" data-d="31/07/26" style="background:#0B6E4F" href="javascript:(function(){try{
 if(window.__xpdfBusy){alert(&#x27;PDF Each is already running.&#x27;);return;}
 var esc=function(s){return String(s==null?&#x27;&#x27;:s);};
 var dl=function(blob,name){var a=document.createElement(&#x27;a&#x27;);a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},2000);};
@@ -701,20 +434,18 @@ run(0);
 - <b style="color:#C00">Auto Check ALL</b> = 목록 전체 자동 검사 (Reset+Price Check, 리포트에서 한번에 열기·PNG 선택 저장)
 - <b style="color:#C00">Auto Check Approve</b> = Approve·Draft 인보이스만 검사 (Approve for Sending 제외)
 - <b style="color:#C00">Auto Check Approve ALL</b> = 위 Approve 검사를 모든 페이지에 (현재→마지막 자동 이동)
-- <b style="color:#C00">Payment Review</b> = scan the Awaiting Payment list (all pages) and find customers whose payments stopped mid-way / 3+ months behind
+- <b style="color:#C00">Apply Credit</b> = 목록에서 크레딧(Credit Note / Overpayment)만 찾아 창으로 띄우고, 클릭하면 새 탭으로 열기
 - <b style="color:#C00">PDF Each</b> = tick invoices in the list, download each as a SEPARATE PDF (Xero otherwise merges them into one)
 - <b style="color:#C00">Email to Me</b> = Send Invoices 창에서 모든 수신자 이메일을 내 주소로 일괄 변경 (replace every recipient email with your own)
 - <b style="color:#C00">Ref Filter</b> = 인보이스 목록에서 입력한 reference(쉼표 구분, 예: ww1, ww2, ww3)와 일치하는 줄만 표시, 나머지 숨김 — wws4 같은 비슷한 것은 안 나옴. 빈 입력 = 전체 다시 표시 (현재 페이지만)
 - <b style="color:#C00">Flagged Summary</b> = Outlook Inbox의 flag 메일 전체를 AI 요약 리포트(EN+KO)로 정리해 브라우저로 열기 (바탕화면 바 전용)
 
-<b style="color:#C00"># Payment Review - find customers whose payments stopped (run on the Awaiting Payment tab)</b>
-- Collects every page automatically (current page -&gt; last page), then groups unpaid invoices by customer
-- <b style="color:#C00">[X] Skipped payments: unpaid month(s) followed by paid months (e.g. Mar unpaid, Apr-May paid, Jun-Jul unpaid)</b> = the customer likely missed an invoice
-- [!] 3+ consecutive months behind
-- [?] Old unpaid: no newer invoice after the last unpaid month - check if the service ended or it was paid since
-- <b style="color:#C00">Customers with only the last 1-2 months unpaid</b> = OK (counted, but not listed in the report)
-- References starting with "ww" show the "ww" in red (attention invoices); each problem customer has an "open in Xero" link
-- Output: Xero-style HTML report, downloaded + opened in a new tab
+<b style="color:#C00"># Apply Credit - find credits waiting to be applied (run on the Awaiting Payment tab)</b>
+- Lists every credit on the current page: credit notes, overpayments, prepayments (Due shown in brackets)
+- Click a number to open it in a new tab, or use <b>Open all</b> to open them all at once
+- The matching rows on the page are highlighted in yellow
+- Tip: sort by <b>Due</b> (ascending) first - every credit moves to the top of page 1
+- Allocating the credit to an invoice is still done by hand: Credit Note Options -&gt; Allocate Credit
 
 <b style="color:#C00"># PDF Each - download selected invoices as separate PDFs</b>
 - Tick the checkboxes of the invoices you want in the list, then run PDF Each
@@ -783,7 +514,7 @@ run(0);
 - <b style="color:#C00">Auto Check ALL</b> = auto-check every repeating invoice (report with open-all + selective PNG save)
 - <b style="color:#C00">Auto Check Approve</b> = only Approve/Draft invoices (skips Approve for Sending)
 - <b style="color:#C00">Auto Check Approve ALL</b> = same Approve check across ALL pages (auto-moves current → last)
-- <b style="color:#C00">Payment Review</b> = scan the Awaiting Payment list (all pages), report customers whose payments stopped / 3+ months behind
+- <b style="color:#C00">Apply Credit</b> = list only the credits (credit notes / overpayments) and open them in new tabs
 - <b style="color:#C00">PDF Each</b> = tick invoices in the list, download each as its own separate PDF
 - <b style="color:#C00">Email to Me</b> = replace every recipient email in the Send Invoices window with your own
 - <b style="color:#C00">Ref Filter</b> = on the invoice list, show only rows whose Reference matches the comma-separated terms (e.g. ww1, ww2, ww3) and hide the rest — similar refs like wws4 are excluded; empty input = show all (current page only)
@@ -856,7 +587,7 @@ var D={
 'IC ALL 1 page':{ko:'목록 페이지 전체를 자동 검사해요 (Reset + Price Check). 문제만 PNG + 리포트로 저장.',en:'Auto-checks every invoice on the list page (Reset + Price Check). Problems saved as PNG + report.'},
 'IC App 1 page':{ko:'Approve·Draft 인보이스만 검사해요 (Approve for Sending 은 건너뜀).',en:'Checks Approve & Draft invoices only (skips Approve for Sending).'},
 'IC App ALL pages':{ko:'Approve 검사를 모든 페이지에 실행해요 (현재→마지막 자동 이동).',en:'Runs the Approve check across ALL pages (auto-moves current → last).'},
-'Payment Review':{ko:'Awaiting Payment 전체 페이지를 스캔해, 납부가 중간에 끊겼거나 3개월 이상 밀린 고객 리포트를 만들어요.',en:'Scans the whole Awaiting Payment list and reports customers with skipped or 3+ months unpaid invoices.'},
+'Apply Credit':{ko:'현재 인보이스 목록에서 크레딧만 골라 창으로 띄워요. 클릭하면 새 탭으로 열려요.',en:'Picks only the credits from the current invoice list and opens them in new tabs.'},
 'PDF Each':{ko:'목록에서 체크한 인보이스를 각각 별도 PDF로 다운로드해요.',en:'Downloads each ticked invoice as its own separate PDF.'},
 'Email to Me':{ko:'Send Invoices 창의 모든 수신자 이메일을 내 주소로 일괄 변경해요.',en:'Replaces every recipient email in the Send Invoices window with your own.'},
 'Ref Filter':{ko:'인보이스 목록에서 입력한 reference(예: ww1, ww2, ww3)와 일치하는 줄만 남기고 나머지는 숨겨요. 빈 입력 = 전체 다시 표시.',en:'On the invoice list, keeps only rows whose Reference matches your terms (e.g. ww1, ww2, ww3); the rest are hidden. Empty input = show all again.'},

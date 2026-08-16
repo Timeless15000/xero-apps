@@ -8,7 +8,7 @@
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 28                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
+APPVER := 29                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Timeless_App.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
@@ -34,7 +34,7 @@ tools := [
     {label:"IC ALL 1 page",  c:"4A148C", key:"F23", id:"autocheck"},
     {label:"IC App 1 page",  c:"7B1FA2", key:"F24", id:"autocheckappr"},
     {label:"IC App ALL pages", c:"9C27B0", key:"+F24", id:"autocheckapprall"},
-    {label:"Payment Review",  c:"B71C1C", key:"+F23", id:"paymentreview"},
+    {label:"Apply Credit",    c:"0277BD", key:"+F23", id:"applycredit"},
     {label:"PDF Each",        c:"0B6E4F", key:"+F22", id:"pdfeach"},
     {label:"Email to Me",     c:"AD1457", key:"+F21", id:"emailtome"},
     {label:"Ref Filter",      c:"37474F", key:"+F20", id:"reffilter"}
@@ -55,7 +55,7 @@ DESC := Map(
     "autocheck",        ["목록 페이지 전체를 자동 검사 (Reset + Price Check). 문제만 PNG + 리포트로 저장.", "Auto-checks every invoice on the list page (Reset + Price Check). Problems saved as PNG + report."],
     "autocheckappr",    ["Approve·Draft 인보이스만 검사 (Approve for Sending 은 건너뜀).", "Checks Approve & Draft invoices only (skips Approve for Sending)."],
     "autocheckapprall", ["Approve 검사를 모든 페이지에 실행 (현재→마지막 자동 이동).", "Runs the Approve check across ALL pages (auto-moves current → last)."],
-    "paymentreview",    ["Awaiting Payment 전체 페이지를 스캔해, 납부가 중간에 끊겼거나 3개월+ 밀린 고객 리포트를 만듭니다.", "Scans the whole Awaiting Payment list and reports customers with skipped or 3+ months unpaid invoices."],
+    "applycredit",      ["인보이스 목록에서 크레딧(Credit Note·Overpayment)만 찾아 창으로 띄웁니다. 클릭하면 새 탭으로 열립니다.", "Finds only the credits (credit notes / overpayments) in the invoice list and opens them in new tabs."],
     "pdfeach",          ["목록에서 체크한 인보이스를 각각 별도 PDF로 다운로드합니다.", "Downloads each ticked invoice as its own separate PDF."],
     "emailtome",        ["Send Invoices 창의 모든 수신자 이메일을 내 주소로 일괄 변경합니다.", "Replaces every recipient email in the Send Invoices window with your own."],
     "reffilter",        ["인보이스 목록에서 입력한 reference(예: ww1, ww2, ww3)와 일치하는 줄만 남기고 나머지는 숨깁니다. 빈 입력 = 전체 다시 표시.", "On the invoice list, keeps only rows whose Reference matches your terms (e.g. ww1, ww2, ww3); empty input = show all again."]
