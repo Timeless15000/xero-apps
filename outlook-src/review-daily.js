@@ -48,12 +48,15 @@ async function run(cfg, mailbox) {
 
   const boxArg = rr.mailbox || target || '';
   const skipList = [...new Set([...BUILTIN_SKIP, ...(cfg.skipSenders || [])])];
+  // 내 주소 전부 — 사서함 주소 + Outlook 계정 주소들 (내가 보낸 메일이 Inbox로 들어오는 경우 제외용)
+  const myAddrs = new Set([boxArg, ...(rr.myAddrs || [])]
+    .map(a => String(a || '').toLowerCase()).filter(a => a.includes('@')));
   const total = rr.items.length;
   let replied = 0, auto = 0, mine = 0;
   const open = [];
   for (const m of rr.items) {
     const addr = String(m.addr || '').toLowerCase();
-    if (boxArg.includes('@') && addr === boxArg) { mine++; continue; }         // 내가 보낸 메일
+    if (m.mine || (addr && myAddrs.has(addr))) { mine++; continue; }           // 내가 보낸 메일
     if (skipList.some(s => addr.includes(s))) { auto++; continue; }            // 자동 발송
     if (m.verb === 102 || m.verb === 103) { replied++; continue; }             // 답장 표시 있음
     if (m.conv && rr.sentSet.has(m.conv)) { replied++; continue; }             // 보낸 메일에 같은 대화 있음
@@ -61,7 +64,8 @@ async function run(cfg, mailbox) {
   }
   // 오래된 것부터
   open.sort((a, b) => new Date(a.received) - new Date(b.received));
-  log(`📬 Review Daily — 받은 ${total}통 중 미답장 ${open.length}통 (답장됨 ${replied}, 자동발송 제외 ${auto}, 내 메일 제외 ${mine})`);
+  const received = Math.max(0, total - mine);   // 내가 보낸 메일은 '받은 메일' 수에서도 뺀다
+  log(`📬 Review Daily — 받은 ${received}통 중 미답장 ${open.length}통 (답장됨 ${replied}, 자동발송 제외 ${auto}, 내 메일 제외 ${mine})`);
 
   // 제목 클릭 → Outlook에서 열기 (Flagged Summary와 같은 도우미 사용)
   const _uport = cfg.unflagPort || 3940;
@@ -81,7 +85,7 @@ async function run(cfg, mailbox) {
   const d = new Date(), z = n => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`;
   const file = path.join(REPORT_DIR, `Review_Daily_${boxArg ? slug(boxArg) + '_' : ''}${stamp}.html`);
-  fs.writeFileSync(file, render(open, { boxArg, hours, total, replied, auto }));
+  fs.writeFileSync(file, render(open, { boxArg, hours, total: received, replied, auto, mine }));
   log(`📬 Review Daily 완료 — 리포트: ${path.basename(file)}`);
   execFile('cmd.exe', ['/c', 'start', '', file], { windowsHide: true });
 }
@@ -137,9 +141,10 @@ body{font:14px/1.5 "Segoe UI","Malgun Gothic",Arial,sans-serif;color:#222;margin
 <div class="card"><b>${info.replied}</b><span>Replied / 답장됨</span></div>
 <div class="card"><b>${info.total}</b><span>Received / 받은 메일</span></div>
 <div class="card"><b>${info.auto}</b><span>Auto mail skipped</span></div>
+<div class="card"><b>${info.mine || 0}</b><span>My own mail skipped</span></div>
 </div>
 ${rows}
-<p class="ft">Click a subject to open that email in Outlook. Replied = Outlook reply mark or a sent email in the same conversation within the window. Auto/no-reply senders are excluded. 제목을 누르면 Outlook에서 열립니다.</p>
+<p class="ft">Click a subject to open that email in Outlook. Replied = Outlook reply mark or a sent email in the same conversation within the window. Auto/no-reply senders and mail you sent yourself are excluded. 제목을 누르면 Outlook에서 열립니다.</p>
 </div>
 </body></html>`;
 }

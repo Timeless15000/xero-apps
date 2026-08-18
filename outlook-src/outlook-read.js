@@ -356,7 +356,7 @@ $max = 0; try { $max = [int]$env:OBAR_MAX } catch { }
 if ($max -le 0) { $max = 400 }
 $blen = 0; try { $blen = [int]$env:OBAR_BODY } catch { }
 if ($blen -le 0) { $blen = 700 }
-$res = [pscustomobject]@{ mailbox = ''; items = @(); sent = @(); error = ''; detail = ''; scanned = 0 }
+$res = [pscustomobject]@{ mailbox = ''; items = @(); sent = @(); mine = @(); error = ''; detail = ''; scanned = 0 }
 try {
   $ol = Get-OutlookApp
   if ($null -eq $ol) { throw 'NO_OUTLOOK' }
@@ -370,6 +370,22 @@ try {
     $res.error = 'MAILBOX_NOT_FOUND'
   } else {
     $res.mailbox = $found.box
+    # 내 주소 모음 — 내가 보낸 메일(자동으로 Inbox에 들어오는 것)을 미답장으로 세지 않기 위해
+    $mineSet = @{}
+    try { if ($found.box) { $mineSet[('' + $found.box).ToLower()] = $true } } catch { }
+    foreach ($a in $ses.Accounts) {
+      try { if ($a.SmtpAddress) { $mineSet[('' + $a.SmtpAddress).ToLower()] = $true } } catch { }
+    }
+    try {
+      $cu = $ses.CurrentUser
+      if ($cu) {
+        $eu0 = $cu.AddressEntry.GetExchangeUser()
+        if ($eu0 -and $eu0.PrimarySmtpAddress) { $mineSet[('' + $eu0.PrimarySmtpAddress).ToLower()] = $true }
+      }
+    } catch { }
+    $alias = ''
+    try { $alias = ('' + $found.box).ToLower().Split('@')[0] } catch { }
+    $res.mine = @($mineSet.Keys)
     $cut = (Get-Date).AddHours(-1 * $hrs)
     $inbox = $found.st.GetDefaultFolder(6)
     $all = $inbox.Items
@@ -393,7 +409,22 @@ try {
       try { $cid = '' + $x.ConversationID } catch { }
       $addr = ''
       try { $addr = $x.PropertyAccessor.GetProperty('http://schemas.microsoft.com/mapi/proptag/0x5D01001F') } catch { }
+      if (-not $addr) { try { $addr = $x.PropertyAccessor.GetProperty('http://schemas.microsoft.com/mapi/proptag/0x5D02001F') } catch { } }
+      if ((-not $addr) -or ($addr -like '/*')) {
+        # 사내에서 보낸 메일은 SMTP 주소 대신 /O=EXCHANGELABS/... 형태로 나온다 -> 실제 주소로 변환
+        try {
+          $se = $x.Sender
+          if ($se) {
+            $eu1 = $se.GetExchangeUser()
+            if ($eu1 -and $eu1.PrimarySmtpAddress) { $addr = $eu1.PrimarySmtpAddress }
+          }
+        } catch { }
+      }
       if (-not $addr) { try { $addr = $x.SenderEmailAddress } catch { } }
+      $isMine = $false
+      $la = ('' + $addr).ToLower()
+      if ($la -and $mineSet.ContainsKey($la)) { $isMine = $true }
+      if ((-not $isMine) -and $alias -and ($la -like '*/cn=*') -and ($la -like ('*' + $alias))) { $isMine = $true }
       $ur = $false
       try { $ur = [bool]$x.UnRead } catch { }
       $txt = ''
@@ -409,6 +440,7 @@ try {
         verb = $verb
         conv = $cid
         unread = $ur
+        mine = $isMine
       })
       $n++
     }
@@ -476,6 +508,8 @@ async function readRecent(mailbox, { hours = 24, bodyChars = 700, max = 400 } = 
     mailbox: (data.mailbox || mailbox || '').toLowerCase(),
     items,
     sentSet: new Set(sent.filter(Boolean)),
+    myAddrs: (Array.isArray(data.mine) ? data.mine : (data.mine ? [data.mine] : []))
+      .map(a => String(a || '').toLowerCase()).filter(Boolean),
     scanned: data.scanned || 0,
   };
 }
