@@ -57,7 +57,7 @@ var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/<
 var dl=function(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},1500);};
 var ts=function(){var d=new Date(),z=function(n){return ('0'+n).slice(-2);};return z(d.getDate())+'-'+z(d.getMonth()+1)+'-'+String(d.getFullYear()).slice(-2)+'_'+z(d.getHours())+z(d.getMinutes());};
 var safe=function(s){return String(s||'').replace(/[^A-Za-z0-9가-힣 ._-]+/g,' ').replace(/\s+/g,' ').trim().slice(0,40)||'invoice';};
-var ACBUILD='A4';
+var ACBUILD='A5';
 var report=function(st,stopped){try{
 var res=(st&&st.res)||[];var qn=(st&&st.q&&st.q.length)||0;
 var hasG=(typeof GM_getValue==='function');var imgs={};var dat={};
@@ -71,12 +71,12 @@ h+='<div style="position:sticky;top:0;background:#fff;border:1px solid #ccc;bord
 +'<button onclick="xsel(1)" style="background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer">모두 선택</button>'
 +'<button onclick="xsel(0)" style="background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer">해제</button>'
 +'<span style="font-size:12px;color:#666">한 번에 20개씩 열려요 · 다시 누르면 다음 20개 · 탭이 안 열리면 팝업 허용</span></div>';
-var card=function(r,cls){dat[r.n]={nm:esc(r.name),tx:esc((r.err?r.err+'\n':'')+(r.rmsg?r.rmsg+'\n':'')+(r.pmsg||''))};h+='<div class="c '+cls+'">'
+var card=function(r,cls){dat[r.n]={nm:esc(r.name),tx:esc((r.err?r.err+'\n':'')+(r.pmsg||''))};h+='<div class="c '+cls+'">'
 +'<label style="float:right;font-weight:normal;font-size:12px;color:#555;cursor:pointer"><input type="checkbox" class="opck"'+(cls==='f'?' checked':'')+' data-n="'+r.n+'" data-u="'+esc(r.u)+'" data-nm="'+esc(r.name)+'"> 선택</label>'
 +'<b>#'+r.n+' '+esc(r.name)+'</b> - <a href="'+esc(r.u)+'" target="_blank">열기</a>'
 +' · <button class="okb" data-n="'+r.n+'" onclick="xok('+r.n+')" style="background:#eceff1;color:#333;border:1px solid #b0bec5;border-radius:5px;padding:2px 10px;font-weight:bold;cursor:pointer">확인</button>'
 +(r.png?' · PNG 저장됨':'');
-if(r.err)h+='<pre>'+esc(r.err)+'</pre>';if(r.rmsg)h+='<pre>'+esc(r.rmsg)+'</pre>';if(r.pmsg)h+='<pre>'+esc(r.pmsg)+'</pre>';
+if(r.err)h+='<pre>'+esc(r.err)+'</pre>';if(r.pmsg)h+='<pre>'+esc(r.pmsg)+'</pre>';
 if(imgs[r.n])h+='<details><summary style="cursor:pointer;color:#1565c0;font-size:12px">스크린샷 보기</summary><img id="xim'+r.n+'" style="max-width:100%;border:1px solid #ccc;margin-top:6px" alt="screenshot"></details>';
 h+='</div>';};
 if(fl.length){h+='<h3>[X] 문제 ('+fl.length+')</h3>';fl.forEach(function(r){card(r,'f');});}
@@ -174,22 +174,19 @@ clearInterval(t);
 setTimeout(function(){
 if(localStorage.getItem(LSR)!=='1'){window.__xchkBusy=0;return;}if(st.md==='appr'){var _sk=0;try{var _rl=document.querySelectorAll('input[type=radio]');for(var _ri=0;_ri<_rl.length;_ri++){var _rr=_rl[_ri];if(!_rr.checked)continue;var _lt='';try{if(_rr.closest){var _cl=_rr.closest('label');if(_cl)_lt=_cl.textContent||'';}}catch(_e){}if(!_lt&&_rr.id){var _lb=document.querySelector('label[for="'+_rr.id+'"]');if(_lb)_lt=_lb.textContent||'';}if(!_lt&&_rr.parentElement)_lt=(_rr.parentElement.textContent||'').slice(0,80);if(/approve\s*for\s*sending/i.test(_lt)){_sk=1;break;}}}catch(_e){}if(_sk){record(st,{n:num,u:item.u,name:item.n,flag:0,skip:1});return;}}
 var out={};var _al=window.alert;window.alert=function(m){out.al=(out.al||'')+m+'\n';};
-try{window.__xchkCb=function(r){if(r.tool==='reset')out.reset=r;else if(r.tool==='price')out.price=r;};
-try{runTool('xeroreset');}catch(_e){out.reset={err:_e.message};}
+try{window.__xchkCb=function(r){if(r.tool==='price')out.price=r;};
 try{runTool('pricecheck');}catch(_e){out.price={err:_e.message};}
 }finally{window.__xchkCb=null;window.alert=_al;}
 var fl=!!(out.price&&out.price.nb);
 var r={n:num,u:item.u,name:item.n,flag:fl?1:0};
 if(out.price&&out.price.nc&&!out.price.nb)r.chk=1;
-if(out.reset&&out.reset.msg)r.rmsg=out.reset.msg;
 if(out.price&&out.price.msg&&(out.price.nb||out.price.nc))r.pmsg=out.price.msg;
 var errs=[];
-if(out.reset&&out.reset.err)errs.push('Reset: '+out.reset.err);
 if(out.price&&out.price.err)errs.push('Price Check: '+out.price.err);
-if(!out.reset&&!out.price)errs.push('도구 실행 안 됨 (no result)');
+if(!out.price)errs.push('도구 실행 안 됨 (no result)');
 if(out.al)errs.push(out.al.trim());
 if(errs.length)r.err=errs.join('\n');
-if(fl||r.chk){var itxt='AUTO CHECK #'+num+' '+(item.n||'')+'\n\n'+(r.rmsg?r.rmsg+'\n':'')+(r.pmsg||'');
+if(fl||r.chk){var itxt='AUTO CHECK #'+num+' '+(item.n||'')+'\n\n'+(r.pmsg||'');
 capture(itxt,'XCHK_'+num+'_'+safe(item.n)+'.png',num,function(ok){if(ok===2)r.img=1;else r.png=ok?1:0;record(st,r);});}
 else{record(st,r);}
 },700);

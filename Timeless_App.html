@@ -64,7 +64,7 @@ var esc=function(s){return String(s==null?&#x27;&#x27;:s).replace(/&amp;/g,&#x27
 var dl=function(blob,name){var a=document.createElement(&#x27;a&#x27;);a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){try{URL.revokeObjectURL(a.href);a.remove();}catch(_e){}},1500);};
 var ts=function(){var d=new Date(),z=function(n){return (&#x27;0&#x27;+n).slice(-2);};return z(d.getDate())+&#x27;-&#x27;+z(d.getMonth()+1)+&#x27;-&#x27;+String(d.getFullYear()).slice(-2)+&#x27;_&#x27;+z(d.getHours())+z(d.getMinutes());};
 var safe=function(s){return String(s||&#x27;&#x27;).replace(/[^A-Za-z0-9가-힣 ._-]+/g,&#x27; &#x27;).replace(/\s+/g,&#x27; &#x27;).trim().slice(0,40)||&#x27;invoice&#x27;;};
-var ACBUILD=&#x27;A4&#x27;;
+var ACBUILD=&#x27;A5&#x27;;
 var report=function(st,stopped){try{
 var res=(st&amp;&amp;st.res)||[];var qn=(st&amp;&amp;st.q&amp;&amp;st.q.length)||0;
 var hasG=(typeof GM_getValue===&#x27;function&#x27;);var imgs={};var dat={};
@@ -78,12 +78,12 @@ h+=&#x27;&lt;div style=&quot;position:sticky;top:0;background:#fff;border:1px so
 +&#x27;&lt;button onclick=&quot;xsel(1)&quot; style=&quot;background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer&quot;&gt;모두 선택&lt;/button&gt;&#x27;
 +&#x27;&lt;button onclick=&quot;xsel(0)&quot; style=&quot;background:#e3e8ec;color:#333;border:none;border-radius:5px;padding:7px 12px;font-weight:bold;cursor:pointer&quot;&gt;해제&lt;/button&gt;&#x27;
 +&#x27;&lt;span style=&quot;font-size:12px;color:#666&quot;&gt;한 번에 20개씩 열려요 · 다시 누르면 다음 20개 · 탭이 안 열리면 팝업 허용&lt;/span&gt;&lt;/div&gt;&#x27;;
-var card=function(r,cls){dat[r.n]={nm:esc(r.name),tx:esc((r.err?r.err+&#x27;\n&#x27;:&#x27;&#x27;)+(r.rmsg?r.rmsg+&#x27;\n&#x27;:&#x27;&#x27;)+(r.pmsg||&#x27;&#x27;))};h+=&#x27;&lt;div class=&quot;c &#x27;+cls+&#x27;&quot;&gt;&#x27;
+var card=function(r,cls){dat[r.n]={nm:esc(r.name),tx:esc((r.err?r.err+&#x27;\n&#x27;:&#x27;&#x27;)+(r.pmsg||&#x27;&#x27;))};h+=&#x27;&lt;div class=&quot;c &#x27;+cls+&#x27;&quot;&gt;&#x27;
 +&#x27;&lt;label style=&quot;float:right;font-weight:normal;font-size:12px;color:#555;cursor:pointer&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;opck&quot;&#x27;+(cls===&#x27;f&#x27;?&#x27; checked&#x27;:&#x27;&#x27;)+&#x27; data-n=&quot;&#x27;+r.n+&#x27;&quot; data-u=&quot;&#x27;+esc(r.u)+&#x27;&quot; data-nm=&quot;&#x27;+esc(r.name)+&#x27;&quot;&gt; 선택&lt;/label&gt;&#x27;
 +&#x27;&lt;b&gt;#&#x27;+r.n+&#x27; &#x27;+esc(r.name)+&#x27;&lt;/b&gt; - &lt;a href=&quot;&#x27;+esc(r.u)+&#x27;&quot; target=&quot;_blank&quot;&gt;열기&lt;/a&gt;&#x27;
 +&#x27; · &lt;button class=&quot;okb&quot; data-n=&quot;&#x27;+r.n+&#x27;&quot; onclick=&quot;xok(&#x27;+r.n+&#x27;)&quot; style=&quot;background:#eceff1;color:#333;border:1px solid #b0bec5;border-radius:5px;padding:2px 10px;font-weight:bold;cursor:pointer&quot;&gt;확인&lt;/button&gt;&#x27;
 +(r.png?&#x27; · PNG 저장됨&#x27;:&#x27;&#x27;);
-if(r.err)h+=&#x27;&lt;pre&gt;&#x27;+esc(r.err)+&#x27;&lt;/pre&gt;&#x27;;if(r.rmsg)h+=&#x27;&lt;pre&gt;&#x27;+esc(r.rmsg)+&#x27;&lt;/pre&gt;&#x27;;if(r.pmsg)h+=&#x27;&lt;pre&gt;&#x27;+esc(r.pmsg)+&#x27;&lt;/pre&gt;&#x27;;
+if(r.err)h+=&#x27;&lt;pre&gt;&#x27;+esc(r.err)+&#x27;&lt;/pre&gt;&#x27;;if(r.pmsg)h+=&#x27;&lt;pre&gt;&#x27;+esc(r.pmsg)+&#x27;&lt;/pre&gt;&#x27;;
 if(imgs[r.n])h+=&#x27;&lt;details&gt;&lt;summary style=&quot;cursor:pointer;color:#1565c0;font-size:12px&quot;&gt;스크린샷 보기&lt;/summary&gt;&lt;img id=&quot;xim&#x27;+r.n+&#x27;&quot; style=&quot;max-width:100%;border:1px solid #ccc;margin-top:6px&quot; alt=&quot;screenshot&quot;&gt;&lt;/details&gt;&#x27;;
 h+=&#x27;&lt;/div&gt;&#x27;;};
 if(fl.length){h+=&#x27;&lt;h3&gt;[X] 문제 (&#x27;+fl.length+&#x27;)&lt;/h3&gt;&#x27;;fl.forEach(function(r){card(r,&#x27;f&#x27;);});}
@@ -181,22 +181,19 @@ clearInterval(t);
 setTimeout(function(){
 if(localStorage.getItem(LSR)!==&#x27;1&#x27;){window.__xchkBusy=0;return;}if(st.md===&#x27;appr&#x27;){var _sk=0;try{var _rl=document.querySelectorAll(&#x27;input[type=radio]&#x27;);for(var _ri=0;_ri&lt;_rl.length;_ri++){var _rr=_rl[_ri];if(!_rr.checked)continue;var _lt=&#x27;&#x27;;try{if(_rr.closest){var _cl=_rr.closest(&#x27;label&#x27;);if(_cl)_lt=_cl.textContent||&#x27;&#x27;;}}catch(_e){}if(!_lt&amp;&amp;_rr.id){var _lb=document.querySelector(&#x27;label[for=&quot;&#x27;+_rr.id+&#x27;&quot;]&#x27;);if(_lb)_lt=_lb.textContent||&#x27;&#x27;;}if(!_lt&amp;&amp;_rr.parentElement)_lt=(_rr.parentElement.textContent||&#x27;&#x27;).slice(0,80);if(/approve\s*for\s*sending/i.test(_lt)){_sk=1;break;}}}catch(_e){}if(_sk){record(st,{n:num,u:item.u,name:item.n,flag:0,skip:1});return;}}
 var out={};var _al=window.alert;window.alert=function(m){out.al=(out.al||&#x27;&#x27;)+m+&#x27;\n&#x27;;};
-try{window.__xchkCb=function(r){if(r.tool===&#x27;reset&#x27;)out.reset=r;else if(r.tool===&#x27;price&#x27;)out.price=r;};
-try{runTool(&#x27;xeroreset&#x27;);}catch(_e){out.reset={err:_e.message};}
+try{window.__xchkCb=function(r){if(r.tool===&#x27;price&#x27;)out.price=r;};
 try{runTool(&#x27;pricecheck&#x27;);}catch(_e){out.price={err:_e.message};}
 }finally{window.__xchkCb=null;window.alert=_al;}
 var fl=!!(out.price&amp;&amp;out.price.nb);
 var r={n:num,u:item.u,name:item.n,flag:fl?1:0};
 if(out.price&amp;&amp;out.price.nc&amp;&amp;!out.price.nb)r.chk=1;
-if(out.reset&amp;&amp;out.reset.msg)r.rmsg=out.reset.msg;
 if(out.price&amp;&amp;out.price.msg&amp;&amp;(out.price.nb||out.price.nc))r.pmsg=out.price.msg;
 var errs=[];
-if(out.reset&amp;&amp;out.reset.err)errs.push(&#x27;Reset: &#x27;+out.reset.err);
 if(out.price&amp;&amp;out.price.err)errs.push(&#x27;Price Check: &#x27;+out.price.err);
-if(!out.reset&amp;&amp;!out.price)errs.push(&#x27;도구 실행 안 됨 (no result)&#x27;);
+if(!out.price)errs.push(&#x27;도구 실행 안 됨 (no result)&#x27;);
 if(out.al)errs.push(out.al.trim());
 if(errs.length)r.err=errs.join(&#x27;\n&#x27;);
-if(fl||r.chk){var itxt=&#x27;AUTO CHECK #&#x27;+num+&#x27; &#x27;+(item.n||&#x27;&#x27;)+&#x27;\n\n&#x27;+(r.rmsg?r.rmsg+&#x27;\n&#x27;:&#x27;&#x27;)+(r.pmsg||&#x27;&#x27;);
+if(fl||r.chk){var itxt=&#x27;AUTO CHECK #&#x27;+num+&#x27; &#x27;+(item.n||&#x27;&#x27;)+&#x27;\n\n&#x27;+(r.pmsg||&#x27;&#x27;);
 capture(itxt,&#x27;XCHK_&#x27;+num+&#x27;_&#x27;+safe(item.n)+&#x27;.png&#x27;,num,function(ok){if(ok===2)r.img=1;else r.png=ok?1:0;record(st,r);});}
 else{record(st,r);}
 },700);
