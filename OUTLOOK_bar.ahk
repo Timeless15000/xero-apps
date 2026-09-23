@@ -5,8 +5,9 @@
 ; XERO 바와 같은 조작감의 데스크톱 바. 차이점: 버튼이 단축키를 보내는 대신
 ; 이 저장소의 Node 명령을 직접 실행한다 (Tampermonkey 불필요).
 ; - Flagged Summary: flag된 메일을 AI 요약과 함께 HTML 리포트로 정리해 브라우저로 연다.
-;   메일은 실행 중인 Outlook 에서 직접 읽는다 → 회사 계정 구분·서버 권한·로그인 불필요.
-;   지금 Outlook 화면에 보고 있는 사서함(공유·추가 사서함 포함)을 자동으로 대상으로 삼는다.
+;   메일은 Microsoft Graph(클라우드)로 읽는다 → 클래식/새 Outlook 어느 쪽이든, Outlook 이 꺼져 있어도 된다.
+;   PC 마다 한 번 Microsoft 로그인(코드 입력)이 필요하다 — 로그인이 없으면 버튼을 눌렀을 때 자동으로 안내한다.
+;   클래식 Outlook 이 켜져 있으면 지금 보고 있는 사서함을 메뉴 맨 위에 올려준다.
 ;   특정 사서함을 항상 보려면 tools 에 mbox 를 지정한 버튼을 두면 된다.
 ; EDIT: 보여줄 버튼만 체크 → SAVE / X(취소). 크기 조절: 창 오른쪽 아래 코너 드래그. 설정은 저장됨.
 
@@ -15,11 +16,11 @@ UPDATE_URL := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OU
 ; 프로그램 파일(src)도 바와 똑같이 GitHub 에서 직접 받는다 (회사 폴더 복사에만 의존하지 않도록).
 ; config.json(API 키)·tone-guide.md·서명 파일은 일부러 올리지 않는다 → 그것들은 계속 회사 폴더에서 온다.
 SRC_BASE := "https://raw.githubusercontent.com/Timeless15000/xero-apps/main/outlook-src/"
-SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "index.js", "outlook-detect.js"
+SRC_FILES := ["ai.js", "auth.js", "flagged.js", "graph.js", "graph-read.js", "index.js", "outlook-detect.js"
             , "outlook-read.js", "review-daily.js", "srcver.js", "unflag-server.js", "package.json"]
 AUTO_UPDATE := !InStr(A_ScriptDir, "GitHub")   ; 관리자 원본 폴더에서는 자동 업데이트 안 함
 
-APPVER := 28                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
+APPVER := 29                              ; 앱 버전 — 이 폴더의 무엇이든 고치면 +1 (바 파일뿐 아니라 src\*.js 포함)
 DATEVER := "02/08/2026"                 ; 오프라인 기본값. 아래에서 파일 수정날짜로 자동 대체.
 try DATEVER := FormatTime(FileGetTime(A_ScriptFullPath, "M"), "dd/MM/yyyy")  ; 이 파일 마지막 수정일 = 버전 날짜
 
@@ -257,14 +258,44 @@ RunTool(id, *) {
     }
 }
 
+; 이 PC 에 Microsoft 로그인(tokens.json)이 없으면 로그인 창을 띄운다. 반환: 1=로그인됨, 0=취소/실패
+EnsureLogin() {
+    Tip("로그인 확인 중...", 0)
+    out := CaptureNode(' /c node "src\index.js" --check-login')
+    HideTip()
+    if InStr(out, "LOGIN=ok")
+        return 1
+    if (MsgBox("이 PC 에서 아직 메일 로그인이 안 되어 있습니다 (처음 한 번만).`n`n"
+             . "[확인]을 누르면 검은 창에 코드가 나옵니다.`n"
+             . "브라우저가 열리면 회사 메일로 로그인한 뒤 그 코드를 입력해 주세요.`n"
+             . "끝나면 검은 창이 저절로 닫힙니다.", "OUTLOOK Bar - 로그인", 0x1 | 0x40) != "OK")
+        return 0
+    try Run("https://microsoft.com/devicelogin")
+    ; 로그인은 보이는 창에서 (코드를 읽어야 하므로 숨기지 않는다)
+    try RunWait(A_ComSpec ' /c node "src\index.js" --login', A_ScriptDir)
+    Tip("로그인 확인 중...", 0)
+    out := CaptureNode(' /c node "src\index.js" --check-login')
+    HideTip()
+    if InStr(out, "LOGIN=ok")
+        return 1
+    MsgBox("로그인이 끝나지 않았습니다. 버튼을 다시 눌러 다시 시도해 주세요.", "OUTLOOK Bar", 0x30)
+    return 0
+}
+
 ; 사서함 선택 공통 흐름 (목록 메뉴). 반환: Map("ok",0|1, "box","")
 ; ok=0 → 취소/실패(중단). ok=1 & box="" → 로그인한 본인 계정(기본 사서함)으로 진행.
 PickMailboxFlow() {
     global pickBox, pickMap
     r := Map("ok", 0, "box", "")
+    if !EnsureLogin()
+        return r
     Tip("사서함 목록 확인 중...", 0)
     out := CaptureNode(' /c node "src\index.js" --list-mailboxes')
     HideTip()
+    if InStr(out, "STATE=login") {
+        MsgBox("로그인이 만료되었습니다. 버튼을 다시 눌러 로그인해 주세요.", "OUTLOOK Bar", 0x30)
+        return r
+    }
 
     cur := ""
     if RegExMatch(out, "CUR=([^\r\n]*)", &mc)
@@ -290,20 +321,11 @@ PickMailboxFlow() {
     }
 
     if (labels.Length = 0) {
-        state := ""
-        if RegExMatch(out, "STATE=([^\r\n]*)", &ms)
-            state := Trim(ms[1], " `t")
-        if (state = "new") {
-            MsgBox("이 PC는 새 Outlook(New Outlook) 을 쓰고 있어 메일을 읽을 수 없습니다.`n`n"
-                 . "Outlook 오른쪽 위의 [새 Outlook] 스위치를 꺼서`n"
-                 . "기존 Outlook 으로 바꾼 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-            return r
-        }
-        if (state = "none") {
-            MsgBox("Outlook 이 실행되고 있지 않습니다.`n`nOutlook 을 켠 뒤 다시 눌러주세요.", "OUTLOOK Bar", 0x30)
-            return r
-        }
-        if (MsgBox("Outlook 에서 사서함 목록을 읽지 못했습니다.`n`n로그인한 본인 계정으로 진행할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
+        ; Graph 는 Outlook 실행 여부와 무관하다 — 목록이 비면 인터넷/권한 문제. 원인을 보여주고 본인 계정으로 진행할지 묻는다
+        err := ""
+        if RegExMatch(out, "ERR=([^\r\n]*)", &me)
+            err := Trim(me[1], " `t")
+        if (MsgBox("사서함 목록을 읽지 못했습니다." (err != "" ? "`n(" err ")" : "") "`n`n로그인한 본인 계정으로 진행할까요?", "OUTLOOK Bar", 0x4 | 0x30) != "Yes")
             return r
         r["ok"] := 1
         return r
@@ -507,7 +529,7 @@ RunNodeShow(cmd, waitMsg) {
     emsg := "리포트 생성에 실패했습니다 (코드 " ec ")."
     if (detail != "")
         emsg .= "`n`n[원인]`n" detail
-    emsg .= "`n- Outlook 이 켜져 있어야 합니다 (메일은 Outlook 에서 직접 읽습니다).`n- 방금 Outlook 을 켰다면 잠시 뒤 다시 눌러주세요."
+    emsg .= "`n- 메일은 Microsoft 클라우드(Graph)에서 읽습니다 — 인터넷 연결을 확인해 주세요.`n- '로그인' 관련 문구가 보이면 버튼을 다시 눌러 로그인하면 됩니다."
     MsgBox(emsg, "OUTLOOK Bar", 0x30)
 }
 

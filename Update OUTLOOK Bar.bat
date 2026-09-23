@@ -108,6 +108,23 @@ call npm install
 popd
 :havedeps
 
+rem  ---- Microsoft sign-in (once per PC) - the bar reads mail through the cloud (Graph),
+rem       so it works with classic AND new Outlook, even when Outlook is closed.
+set "LOGINSTATE="
+for /f "usebackq delims=" %%L in (`node "%DESTDIR%\src\index.js" --check-login 2^>nul`) do set "LOGINSTATE=%%L"
+if /i "%LOGINSTATE%"=="LOGIN=ok" goto :haveauth
+echo.
+echo   Sign in to your company email (one time). A code will appear below -
+echo   a browser window opens; sign in with your work email and enter the code.
+echo   회사 메일 로그인 (처음 한 번). 아래에 코드가 나오면, 열리는 브라우저에서
+echo   회사 메일로 로그인한 뒤 그 코드를 입력하세요.
+echo.
+start https://microsoft.com/devicelogin
+pushd "%DESTDIR%"
+node src\index.js --login
+popd
+:haveauth
+
 
 rem  ---- AutoHotkey v2 (auto install if missing - no admin needed) ----
 call :findahk

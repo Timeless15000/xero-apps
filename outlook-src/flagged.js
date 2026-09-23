@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
-const { readFlagged } = require('./outlook-read');
+const graphRead = require('./graph-read');
 const { getActiveOutlookAccount, outlookState } = require('./outlook-detect');
 const { summarizeFlagged } = require('./ai');
 
@@ -22,41 +22,45 @@ function log(msg) {
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+// 읽기 실패를 직원이 알아볼 문장으로 바꾼다 (flagged / review-daily 공통)
+function readError(e) {
+  const kind = graphRead.explain(e);
+  if (kind === 'LOGIN_REQUIRED') {
+    return new Error('이 PC에서 아직 메일 로그인이 안 되어 있습니다.\n'
+      + '바의 버튼을 다시 누르면 로그인 창이 뜹니다 (화면의 코드를 microsoft.com/devicelogin 에 입력).');
+  }
+  if (kind === 'MAILBOX_NOT_FOUND') return new Error('그 사서함을 찾지 못했습니다. 목록에서 다시 골라주세요.\n원인: ' + e.message);
+  if (kind === 'NO_ACCESS') return new Error('이 계정은 그 사서함을 읽을 권한이 없습니다 (공유 사서함 권한 확인).\n원인: ' + e.message);
+  if (kind === 'FOLDER_NOT_FOUND') return new Error('폴더를 찾지 못했습니다 (이름이 바뀌었을 수 있음). 폴더를 다시 골라주세요.\n원인: ' + e.message);
+  if (kind === 'NETWORK') return new Error('인터넷 연결이 불안정해 메일을 읽지 못했습니다. 잠시 뒤 다시 눌러주세요.\n원인: ' + e.message);
+  return new Error('메일을 읽지 못했습니다.\n원인: ' + e.message);
+}
+
 async function run(cfg, mailbox, folders) {
-  // 메일은 이 PC의 Outlook에서 직접 읽는다 (서버 로그인·권한·회사 계정 구분과 무관).
-  //   ① --mailbox 로 지정한 사서함(주소 또는 스토어 이름) → ② Outlook 화면에서 보고 있는 사서함 → ③ Outlook 기본 사서함
+  // 메일은 Microsoft Graph 로 읽는다 — 클래식/새 Outlook 어느 쪽이든, Outlook 이 꺼져 있어도 된다.
+  //   ① --mailbox 로 지정한 사서함(주소) → ② 클래식 Outlook 이 켜져 있으면 지금 보고 있는 사서함 → ③ 로그인한 본인
   // folders: 폴더 spec 배열 ('.'=Inbox, 그 외 = Inbox 하위 경로) — 비어 있으면 Inbox 만
   let target = String(mailbox || '').trim().toLowerCase();
   if (!target) {
-    try { target = (await getActiveOutlookAccount()) || ''; } catch (e) { target = ''; }
+    let st = 'none';
+    try { st = await outlookState(); } catch (e) { st = 'none'; }
+    if (st === 'classic') { try { target = (await getActiveOutlookAccount()) || ''; } catch (e) { target = ''; } }
+    if (!target.includes('@')) target = '';
   }
   const folderSpecs = Array.isArray(folders) ? folders.filter(Boolean) : [];
-  log(`🚩 Flagged Summary 생성 시작${target ? ` — 사서함: ${target}` : ' — Outlook 기본 사서함'}`
+  log(`🚩 Flagged Summary 생성 시작${target ? ` — 사서함: ${target}` : ' — 로그인한 본인 사서함'}`
     + (folderSpecs.length ? ` — 폴더 ${folderSpecs.length}개` : ''));
 
   let read;
   try {
-    read = await readFlagged(target, { max: 200, bodyChars: 6000, folders: folderSpecs });
+    read = await graphRead.readFlagged(cfg.clientId, target, { max: 200, bodyChars: 6000, folders: folderSpecs });
   } catch (e) {
-    let st = 'none';
-    try { st = await outlookState(); } catch (e2) { }
-    if (st === 'new') {
-      throw new Error('이 PC는 "새 Outlook(New Outlook)"을 쓰고 있어 메일을 읽을 수 없습니다.\n'
-        + 'Outlook 오른쪽 위의 "새 Outlook" 스위치를 꺼서 기존 Outlook으로 바꾼 뒤 다시 눌러주세요.');
-    }
-    if (st === 'none') {
-      throw new Error('Outlook 이 실행되고 있지 않습니다. Outlook 을 켜고 다시 눌러주세요.');
-    }
-    // classic Outlook 인데도 실패 — 실제 오류를 그대로 보여준다 (권한 수준 차이 등)
-    throw new Error('Outlook 은 켜져 있는데 연결하지 못했습니다.\n'
-      + '바(또는 Outlook)를 관리자 권한으로 실행했다면 둘 다 일반 권한으로 다시 실행해 주세요.\n'
-      + '원인: ' + e.message);
+    throw readError(e);
   }
   const boxArg = read.mailbox || target || '';
   const msgs = read.msgs;
-  const runFolders = new Set(msgs.map(m => m._folder || 'Inbox'));
   const folderNote = folderSpecs.length > 1 ? ` · folders: ${folderSpecs.length}` : '';
-  const accountNote = `${boxArg || '(기본 사서함)'}${folderNote} · Outlook에서 직접 읽음`;
+  const accountNote = `${boxArg || '(기본 사서함)'}${folderNote}`;
   log(`👤 대상 사서함: ${boxArg || '(기본)'} — flag ${msgs.length}건 `
     + `(방식 ${read.how || '?'}, 검사한 메일 ${read.inboxCount}통, 걸린 ${read.flagCount}건`
     + (folderSpecs.length ? `, 폴더 ${folderSpecs.length}개` : '') + `)`);
@@ -107,9 +111,9 @@ async function run(cfg, mailbox, folders) {
   const stamp = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`;
   // 하나의 리포트에 영어(왼쪽)+한글(오른쪽) 나란히
   const file = path.join(REPORT_DIR, `Flagged_Summary_${boxArg ? slug(boxArg) + '_' : ''}${stamp}.html`);
-  // Unflag 버튼용 독립 도우미 서버를 detached로 띄운다 (감시자와 무관하게 동작, 20분 뒤 자동 종료).
-  // EntryID는 사서함과 무관하게 고유하므로 도우미는 하나면 된다
-  const _uport = cfg.unflagPort || 3940;
+  // Unflag / 열기 버튼용 독립 도우미 서버를 detached로 띄운다 (감시자와 무관하게 동작).
+  // 도우미는 Graph 로 flag 를 끄고, 클래식 Outlook 이 켜져 있으면 그 창에서 메일을 열어준다 (아니면 웹 Outlook).
+  const _uport = cfg.unflagPort || 3941;   // 3941: 예전(COM) 도우미가 3940 에 떠 있어도 섞이지 않게
   const _usecret = cfg.unflagSecret || '';
   const _ubase = `http://127.0.0.1:${_uport}`;
   try {
@@ -117,13 +121,15 @@ async function run(cfg, mailbox, folders) {
       [path.join(__dirname, 'unflag-server.js'), String(_uport), cfg.clientId || '', cfg.tenant || '', _usecret],
       { detached: true, stdio: 'ignore', windowsHide: true });
     child.unref();
-    log(`🚩 Unflag 도우미 시작 (127.0.0.1:${_uport}, 20분 후 자동 종료)`);
+    log(`🚩 Unflag 도우미 시작 (127.0.0.1:${_uport})`);
   } catch (e) { log(`⚠️  Unflag 도우미 시작 실패: ${e.message}`); }
-  // 제목을 누르면 Outlook에서 그 메일이 열리도록 로컬 도우미 링크를 건다
+  // 제목을 누르면 도우미가 Outlook(클래식) 또는 웹 Outlook 에서 그 메일을 연다
+  const _mbq = boxArg ? `&mb=${encodeURIComponent(boxArg)}` : '';
   for (const m of msgs) {
-    m.webLink = `${_ubase}/open?id=${encodeURIComponent(m.id)}` + (_usecret ? `&k=${encodeURIComponent(_usecret)}` : '');
+    const web = m.webLink ? `&web=${encodeURIComponent(m.webLink)}` : '';
+    m.webLink = `${_ubase}/open?id=${encodeURIComponent(m.id)}${_mbq}${web}` + (_usecret ? `&k=${encodeURIComponent(_usecret)}` : '');
   }
-  fs.writeFileSync(file, render(msgs, accountNote, _ubase, _usecret));
+  fs.writeFileSync(file, render(msgs, accountNote, _ubase, _usecret, boxArg));
   log(`🚩 Flagged Summary 완료 (${boxArg} Inbox) — flag ${msgs.length}건, 새 요약 ${newCount}건${failCount ? `, 실패 ${failCount}건` : ''}`);
 
   // 기본 브라우저로 열기 (영어+한글 한 페이지)
@@ -156,7 +162,7 @@ function bulletHtml(txt) {
   return o;
 }
 
-function render(msgs, accountNote, ubase, secret) {
+function render(msgs, accountNote, ubase, secret, mailbox) {
   const t = T;
   const total = msgs.length;
   const oldest = total ? ageDays(msgs[0].receivedDateTime) : 0;
@@ -243,7 +249,7 @@ ${total ? `<div class="bar">${t.sortLabel}<button id="sort-old" class="sortb on"
 <p class="ft">${t.foot}</p>
 </div>
 <script>
-var UB=${JSON.stringify(ubase || '')},UK=${JSON.stringify(secret || '')};
+var UB=${JSON.stringify(ubase || '')},UK=${JSON.stringify(secret || '')},MB=${JSON.stringify(mailbox || '')};
 var CFM=${JSON.stringify(t.confirmUnflag)},OFFM=${JSON.stringify(t.unflagOff)},ULBL=${JSON.stringify(t.unflag)};
 function xDec(){var el=document.getElementById('cnt-total');if(el){var n=(parseInt(el.textContent,10)||1)-1;if(n<0)n=0;el.textContent=n;}}
 function xSort(dir){var w=document.getElementById('mails');if(!w)return;var cs=[].slice.call(w.querySelectorAll('.mail'));cs.sort(function(a,b){var ta=+a.getAttribute('data-ts'),tb=+b.getAttribute('data-ts');return dir==='new'?tb-ta:ta-tb;});cs.forEach(function(c){w.appendChild(c);});var o=document.getElementById('sort-old'),n=document.getElementById('sort-new');if(o)o.className='sortb'+(dir==='old'?' on':'');if(n)n.className='sortb'+(dir==='new'?' on':'');}
@@ -253,7 +259,7 @@ function xUnflag(btn){
   var id=card.getAttribute('data-id');if(!id)return;
   if(!confirm(CFM))return;
   btn.disabled=true;btn.textContent='...';
-  var url=UB+'/unflag?id='+encodeURIComponent(id)+(UK?'&k='+encodeURIComponent(UK):'');
+  var url=UB+'/unflag?id='+encodeURIComponent(id)+(MB?'&mb='+encodeURIComponent(MB):'')+(UK?'&k='+encodeURIComponent(UK):'');
   fetch(url).then(function(r){
     if(!r.ok)throw new Error('s'+r.status);
     card.style.transition='opacity .3s';card.style.opacity='0';
@@ -264,4 +270,4 @@ function xUnflag(btn){
 </body></html>`;
 }
 
-module.exports = { run };
+module.exports = { run, readError };

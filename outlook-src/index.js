@@ -283,36 +283,51 @@ async function main() {
     process.stdout.write('MAILBOX=' + found + '\n');
     return;
   }
-  // 바의 사서함 선택 메뉴용 — Outlook에 붙어 있는 사서함 목록 + 지금 보고 있는 사서함
+  // 바가 버튼을 누르기 전에 — 이 PC 에 메일 로그인(tokens.json)이 되어 있는지
+  if (args.includes('--check-login')) {
+    const ok = await require('./graph-read').checkLogin(cfg.clientId);
+    process.stdout.write('LOGIN=' + (ok ? 'ok' : 'need') + '\n');
+    return;
+  }
+  // 바의 사서함 선택 메뉴용 — 본인 + config.json 의 공유 사서함 (Graph) + 클래식 Outlook 이 켜져 있으면 거기 붙은 사서함
+  // Outlook 종류·실행 여부와 무관하게 동작한다. 로그인이 안 돼 있으면 STATE=login 만 출력한다.
   if (args.includes('--list-mailboxes')) {
+    const graphRead = require('./graph-read');
     const { getActiveOutlookAccount, listOutlookMailboxes, outlookState } = require('./outlook-detect');
-    let list = [], cur = '';
-    try { list = await listOutlookMailboxes(); } catch (e) { list = []; }
-    if (!list.length) {
-      let st = 'none';
-      try { st = await outlookState(); } catch (e) { st = 'none'; }
-      process.stdout.write('STATE=' + st + '\n');
+    if (!(await graphRead.checkLogin(cfg.clientId))) { process.stdout.write('STATE=login\n'); return; }
+    let st = 'none';
+    try { st = await outlookState(); } catch (e) { st = 'none'; }
+    let extra = [], cur = '';
+    if (st === 'classic') {
+      try { extra = await listOutlookMailboxes(); } catch (e) { extra = []; }
+      try { cur = (await getActiveOutlookAccount()) || ''; } catch (e) { cur = ''; }
     }
-    try { cur = (await getActiveOutlookAccount()) || ''; } catch (e) { cur = ''; }
-    // 지금 보고 있는 사서함을 맨 위로, 나머지는 이름(없으면 주소) 가나다/알파벳 순
-    // (주소를 못 구한 사서함은 smtp가 비어 있고 이름만 있다 — cur도 이름일 수 있다)
+    let boxes;
+    try { boxes = await graphRead.listMailboxes(cfg.clientId, cfg, extra); }
+    catch (e) {
+      process.stdout.write('STATE=' + (graphRead.explain(e) === 'LOGIN_REQUIRED' ? 'login' : 'error') + '\n');
+      process.stdout.write('ERR=' + (e.message || 'FAILED') + '\n');
+      return;
+    }
+    const list = boxes.list;
+    // 지금 보고 있는 사서함(클래식일 때) 또는 본인을 맨 위로, 나머지는 이름 순
     const key = b => (b.name || b.smtp || '').toLowerCase();
     list.sort((a, b) => key(a).localeCompare(key(b), 'en'));
     const curLow = String(cur || '').toLowerCase();
-    const isCur = b => !!curLow && ((b.smtp && b.smtp === curLow) || (b.name && b.name.toLowerCase() === curLow));
+    const isCur = b => curLow ? (b.smtp === curLow || (b.name && b.name.toLowerCase() === curLow)) : b.smtp === boxes.me.smtp;
     const top = list.filter(isCur);
     const rest = list.filter(b => !isCur(b));
-    process.stdout.write('CUR=' + cur + '\n');
+    process.stdout.write('CUR=' + (top[0]?.smtp || boxes.me.smtp || '') + '\n');
     for (const b of [...top, ...rest]) process.stdout.write('MBOX=' + (b.smtp || '') + '\t' + (b.name || '') + '\n');
     return;
   }
   // 바의 폴더 선택 창용 — 대상 사서함의 Inbox 하위 폴더 목록 (FLD=<spec>\t<표시 경로>)
   if (args.includes('--list-folders')) {
-    const { listFolders } = require('./outlook-read');
+    const graphRead = require('./graph-read');
     const _mi2 = args.indexOf('--mailbox');
     const _mb2 = _mi2 >= 0 ? (args[_mi2 + 1] || '') : (process.env.OBAR_MBOXPICK || '');
     try {
-      for (const f of await listFolders(_mb2)) process.stdout.write('FLD=' + f.spec + '\t' + f.display + '\n');
+      for (const f of await graphRead.listFolders(cfg.clientId, _mb2)) process.stdout.write('FLD=' + f.spec + '\t' + f.display + '\n');
     } catch (e) {
       process.stdout.write('ERR=' + (e.message || 'FAILED') + '\n');
     }

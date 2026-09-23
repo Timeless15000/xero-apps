@@ -5,8 +5,9 @@
 const fs = require('fs');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
-const { readRecent } = require('./outlook-read');
+const graphRead = require('./graph-read');
 const { getActiveOutlookAccount, outlookState } = require('./outlook-detect');
+const { readError } = require('./flagged');
 
 const ROOT = path.join(__dirname, '..');
 const REPORT_DIR = path.join(ROOT, 'reports');
@@ -23,27 +24,22 @@ function slug(email) { return String(email || '').split('@')[0].replace(/[^A-Za-
 const BUILTIN_SKIP = ['noreply', 'no-reply', 'no_reply', 'donotreply', 'do-not-reply', 'mailer-daemon', 'postmaster', 'notification', 'notifications@', 'alert@', 'alerts@'];
 
 async function run(cfg, mailbox) {
+  // 메일은 Microsoft Graph 로 읽는다 (클래식/새 Outlook 무관, Outlook 꺼져 있어도 됨)
   let target = String(mailbox || '').trim().toLowerCase();
   if (!target) {
-    try { target = (await getActiveOutlookAccount()) || ''; } catch (e) { target = ''; }
+    let st = 'none';
+    try { st = await outlookState(); } catch (e) { st = 'none'; }
+    if (st === 'classic') { try { target = (await getActiveOutlookAccount()) || ''; } catch (e) { target = ''; } }
+    if (!target.includes('@')) target = '';
   }
   const hours = cfg.reviewHours || 24;
-  log(`📬 Review Daily 시작 — 사서함: ${target || '(기본)'}, 최근 ${hours}시간`);
+  log(`📬 Review Daily 시작 — 사서함: ${target || '(로그인한 본인)'}, 최근 ${hours}시간`);
 
   let rr;
   try {
-    rr = await readRecent(target, { hours, bodyChars: 700, max: 400 });
+    rr = await graphRead.readRecent(cfg.clientId, target, { hours, bodyChars: 700, max: 400 });
   } catch (e) {
-    let st = 'none';
-    try { st = await outlookState(); } catch (e2) { }
-    if (st === 'new') {
-      throw new Error('이 PC는 "새 Outlook(New Outlook)"을 쓰고 있어 메일을 읽을 수 없습니다.\n'
-        + 'Outlook 오른쪽 위의 "새 Outlook" 스위치를 꺼서 기존 Outlook으로 바꾼 뒤 다시 눌러주세요.');
-    }
-    if (st === 'none') {
-      throw new Error('Outlook 이 실행되고 있지 않습니다. Outlook 을 켜고 다시 눌러주세요.');
-    }
-    throw new Error('Outlook 은 켜져 있는데 연결하지 못했습니다.\n원인: ' + e.message);
+    throw readError(e);
   }
 
   const boxArg = rr.mailbox || target || '';
@@ -67,8 +63,8 @@ async function run(cfg, mailbox) {
   const received = Math.max(0, total - mine);   // 내가 보낸 메일은 '받은 메일' 수에서도 뺀다
   log(`📬 Review Daily — 받은 ${received}통 중 미답장 ${open.length}통 (답장됨 ${replied}, 자동발송 제외 ${auto}, 내 메일 제외 ${mine})`);
 
-  // 제목 클릭 → Outlook에서 열기 (Flagged Summary와 같은 도우미 사용)
-  const _uport = cfg.unflagPort || 3940;
+  // 제목 클릭 → 클래식 Outlook(켜져 있으면) 또는 웹 Outlook 에서 열기 (Flagged Summary와 같은 도우미 사용)
+  const _uport = cfg.unflagPort || 3941;   // 3941: 예전(COM) 도우미가 3940 에 떠 있어도 섞이지 않게
   const _usecret = cfg.unflagSecret || '';
   const _ubase = `http://127.0.0.1:${_uport}`;
   try {
@@ -77,8 +73,10 @@ async function run(cfg, mailbox) {
       { detached: true, stdio: 'ignore', windowsHide: true });
     child.unref();
   } catch (e) { log(`⚠️  도우미 시작 실패: ${e.message}`); }
+  const _mbq = boxArg ? `&mb=${encodeURIComponent(boxArg)}` : '';
   for (const m of open) {
-    m.webLink = `${_ubase}/open?id=${encodeURIComponent(m.id)}` + (_usecret ? `&k=${encodeURIComponent(_usecret)}` : '');
+    const web = m.webLink ? `&web=${encodeURIComponent(m.webLink)}` : '';
+    m.webLink = `${_ubase}/open?id=${encodeURIComponent(m.id)}${_mbq}${web}` + (_usecret ? `&k=${encodeURIComponent(_usecret)}` : '');
   }
 
   fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -134,7 +132,7 @@ body{font:14px/1.5 "Segoe UI","Malgun Gothic",Arial,sans-serif;color:#222;margin
 .ft{color:#888;font-size:11px;margin:22px 0}
 </style></head><body>
 <div class="hd"><div class="t">📬 Review Daily — unanswered emails</div>
-<small>${esc(info.boxArg || '(default mailbox)')} · ${f2(from)} → ${f2(new Date())} (last ${info.hours}h) · Outlook에서 직접 읽음</small></div>
+<small>${esc(info.boxArg || '(default mailbox)')} · ${f2(from)} → ${f2(new Date())} (last ${info.hours}h)</small></div>
 <div class="wrap">
 <div class="sum-cards">
 <div class="card${open.length ? ' red' : ''}"><b>${open.length}</b><span>Unanswered / 미답장</span></div>
