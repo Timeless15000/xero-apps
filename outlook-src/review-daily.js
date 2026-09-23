@@ -7,7 +7,7 @@ const path = require('path');
 const { execFile, spawn } = require('child_process');
 const graphRead = require('./graph-read');
 const { getActiveOutlookAccount, outlookState } = require('./outlook-detect');
-const { readError } = require('./flagged');
+const { readError, retireOldHelper } = require('./flagged');
 
 const ROOT = path.join(__dirname, '..');
 const REPORT_DIR = path.join(ROOT, 'reports');
@@ -67,9 +67,10 @@ async function run(cfg, mailbox) {
   const _uport = cfg.unflagPort || 3941;   // 3941: 예전(COM) 도우미가 3940 에 떠 있어도 섞이지 않게
   const _usecret = cfg.unflagSecret || '';
   const _ubase = `http://127.0.0.1:${_uport}`;
+  await retireOldHelper(_ubase);
   try {
     const child = spawn(process.execPath,
-      [path.join(__dirname, 'unflag-server.js'), String(_uport), cfg.clientId || '', cfg.tenant || '', _usecret],
+      [path.join(__dirname, 'unflag-server.js'), String(_uport), cfg.clientId || '', cfg.tenant || '', _usecret, cfg.newOutlookLink || ''],
       { detached: true, stdio: 'ignore', windowsHide: true });
     child.unref();
   } catch (e) { log(`⚠️  도우미 시작 실패: ${e.message}`); }

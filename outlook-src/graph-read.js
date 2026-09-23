@@ -231,17 +231,18 @@ function makeGraphReader({ getToken, fetchImpl = fetch } = {}) {
     return 'unflagged';
   }
 
-  // Graph 메일 id → 클래식 Outlook EntryID (클래식이 켜져 있을 때 그 창에서 열어주려고)
-  async function toEntryId(clientId, id, mailbox) {
+  // Graph 메일 id → 다른 형식의 id (entryId: 클래식 Outlook COM 용, ewsId: OWA/새 Outlook 링크용)
+  async function translateId(clientId, id, mailbox, targetIdType = 'entryId') {
     const user = isSmtp(mailbox) ? lower(mailbox) : '';
     const d = await gf(clientId, `${mbox(user)}/translateExchangeIds`, {
       method: 'POST',
-      body: JSON.stringify({ inputIds: [id], sourceIdType: 'restId', targetIdType: 'entryId' }),
+      body: JSON.stringify({ inputIds: [id], sourceIdType: 'restId', targetIdType }),
     });
     return d?.value?.[0]?.targetId || '';
   }
+  const toEntryId = (clientId, id, mailbox) => translateId(clientId, id, mailbox, 'entryId');
 
-  return { me, listMailboxes, configuredMailboxes, listFolders, resolveFolder, readFlagged, readRecent, unflag, toEntryId };
+  return { me, listMailboxes, configuredMailboxes, listFolders, resolveFolder, readFlagged, readRecent, unflag, toEntryId, translateId };
 }
 
 const def = makeGraphReader();

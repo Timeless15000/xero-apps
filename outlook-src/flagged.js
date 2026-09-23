@@ -116,9 +116,10 @@ async function run(cfg, mailbox, folders) {
   const _uport = cfg.unflagPort || 3941;   // 3941: 예전(COM) 도우미가 3940 에 떠 있어도 섞이지 않게
   const _usecret = cfg.unflagSecret || '';
   const _ubase = `http://127.0.0.1:${_uport}`;
+  await retireOldHelper(_ubase);
   try {
     const child = spawn(process.execPath,
-      [path.join(__dirname, 'unflag-server.js'), String(_uport), cfg.clientId || '', cfg.tenant || '', _usecret],
+      [path.join(__dirname, 'unflag-server.js'), String(_uport), cfg.clientId || '', cfg.tenant || '', _usecret, cfg.newOutlookLink || ''],
       { detached: true, stdio: 'ignore', windowsHide: true });
     child.unref();
     log(`🚩 Unflag 도우미 시작 (127.0.0.1:${_uport})`);
@@ -134,6 +135,19 @@ async function run(cfg, mailbox, folders) {
 
   // 기본 브라우저로 열기 (영어+한글 한 페이지)
   execFile('cmd.exe', ['/c', 'start', '', file], { windowsHide: true });
+}
+
+// 옛 버전 도우미가 같은 포트에 떠 있으면 내린다 (새 도우미가 포트를 잡을 수 있게)
+async function retireOldHelper(ubase) {
+  const get = async p => {
+    const r = await fetch(ubase + p, { signal: AbortSignal.timeout(1500) });
+    return (await r.text()).trim();
+  };
+  let ver = '';
+  try { ver = await get('/ping'); } catch (e) { return; }   // 안 떠 있음
+  if (ver === 'helper-30') return;
+  try { await get('/quit'); } catch (e) { }
+  await new Promise(r => setTimeout(r, 600));
 }
 
 function ageDays(iso) { return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
@@ -270,4 +284,4 @@ function xUnflag(btn){
 </body></html>`;
 }
 
-module.exports = { run, readError };
+module.exports = { run, readError, retireOldHelper };
