@@ -2,13 +2,13 @@
 #SingleInstance Force
 
 ; ================= XERO Desktop Bar =================
-; 버튼 = 크롬으로 단축키(F13~F24, Shift+F24) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
+; 버튼 = 크롬으로 단축키(F13~F24, Shift+F21~F24) 전송 → Tampermonkey가 받아 현재 Xero 탭에서 실행.
 ; 버튼 우클릭 = 그 버튼이 뭘 하는지 설명 (한/영). Right-click any button for what it does.
 ; EDIT: 보여줄 버튼만 체크 → SAVE(저장) / X(취소). 순서는 일반 화면에서 버튼을 위/아래로 드래그해 변경. 선택·순서는 저장돼 다음에도 유지.
 ; 크기 조절: 창 오른쪽 아래 코너를 마우스로 끌어서 늘리거나 줄이세요. 크기는 저장됩니다.
 
 VER := "26/07/2026"                     ; 기본 날짜(첫 실행 오프라인용). 켜지면 웹페이지와 같은 날짜를 읽어와 자동 표시.
-APPVER := 33                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
+APPVER := 34                            ; 앱 버전 — 수정할 때마다 +1 (제목에 v20 처럼 표시)
 PAGE_URL := "https://timeless15000.github.io/xero-apps/Timeless_App.html"  ; 제목 날짜 출처(웹페이지와 동일)
 ini := A_ScriptDir "\XERO_bar.ini"      ; 버튼 선택 / 크기 저장
 VER := IniRead(ini, "cfg", "verdate", VER)  ; 마지막 확인한 날짜를 저장해 두고 켤 때부터 그 날짜로 표시 (옛 날짜 깜빡임 방지)
@@ -34,6 +34,7 @@ tools := [
     {label:"IC ALL 1 page",  c:"4A148C", key:"F23", id:"autocheck"},
     {label:"IC App 1 page",  c:"7B1FA2", key:"F24", id:"autocheckappr"},
     {label:"IC App ALL pages", c:"9C27B0", key:"+F24", id:"autocheckapprall"},
+    {label:"IC ALL pages",    c:"311B92", key:"+F21", id:"autocheckallpages"},
     {label:"Apply Credit",    c:"0277BD", key:"+F23", id:"applycredit"},
     {label:"Ref Filter",      c:"37474F", key:"+F22", id:"reffilter"}
 ]
@@ -49,10 +50,11 @@ DESC := Map(
     "xero20",           ["Approved·Draft 인보이스를 20개씩 새 탭으로 엽니다 (팝업 허용 필요).", "Opens Approved & Draft invoices 20 at a time in new tabs (allow pop-ups)."],
     "xeroall20",        ["모든 인보이스를 20개씩 엽니다 (연간 전체 가격 적용 시).", "Opens ALL invoices 20 at a time (for annual all-price updates)."],
     "xerohelp",         ["Xero 화면에 각 버튼의 상세 설명 전체를 띄웁니다.", "Shows the full detailed notes for every button on the Xero page."],
-    "pricecheck",       ["이 인보이스의 가격·주기·합계를 검사만 합니다 (수정 없음).", "Checks prices, frequency and totals on this invoice (changes nothing)."],
+    "pricecheck",       ["이 인보이스의 가격·주기·합계 + Tax Exclusive 여부를 검사만 합니다 (수정 없음).", "Checks prices, frequency, totals and Tax Exclusive on this invoice (changes nothing)."],
     "autocheck",        ["목록 페이지 전체를 자동 검사 (Reset + Price Check). 문제만 PNG + 리포트로 저장.", "Auto-checks every invoice on the list page (Reset + Price Check). Problems saved as PNG + report."],
     "autocheckappr",    ["Approve·Draft 인보이스만 검사 (Approve for Sending 은 건너뜀).", "Checks Approve & Draft invoices only (skips Approve for Sending)."],
     "autocheckapprall", ["Approve 검사를 모든 페이지에 실행 (현재→마지막 자동 이동).", "Runs the Approve check across ALL pages (auto-moves current → last)."],
+    "autocheckallpages", ["모든 인보이스를 모든 페이지에서 검사 (현재→마지막 자동 이동). Price Check + Tax Exclusive 확인.", "Checks ALL invoices across ALL pages (auto-moves current → last). Price Check + Tax Exclusive."],
     "applycredit",      ["인보이스 목록에서 크레딧(Credit Note·Overpayment)만 찾아 창으로 띄웁니다. 클릭하면 새 탭으로 열립니다.", "Finds only the credits (credit notes / overpayments) in the invoice list and opens them in new tabs."],
     "reffilter",        ["인보이스 목록에서 입력한 reference(예: ww1, ww2, ww3)와 일치하는 줄만 남기고 나머지는 숨깁니다. 빈 입력 = 전체 다시 표시.", "On the invoice list, keeps only rows whose Reference matches your terms (e.g. ww1, ww2, ww3); empty input = show all again."]
 )
@@ -379,9 +381,19 @@ LoadOrder() {
             seen[id] := true
         }
     }
-    for t in tools
+    ; 새로 추가된 버튼은 기본 목록에서 바로 앞 버튼 다음 자리에 끼워 넣는다 (없으면 맨 뒤)
+    for i, t in tools
         if !seen.Has(t.id) {
-            ordered.Push(t)
+            pos := ordered.Length + 1
+            if (i > 1) {
+                prevId := tools[i-1].id
+                for k, o in ordered
+                    if (o.id = prevId) {
+                        pos := k + 1
+                        break
+                    }
+            }
+            ordered.InsertAt(pos, t)
             seen[t.id] := true
         }
     tools := ordered
