@@ -1,17 +1,18 @@
 // ==UserScript==
 // @name         XERO bar
 // @namespace    xero-tools
-// @version      2026.08.05.0500
+// @version      2026.10.04.0000
 // @description  Always-latest loader for the XERO bar tools. Shows the bar INSTANTLY from a local cache, then refreshes the code in the background so the next page load has the newest version. Staff never reinstall or wait.
 // @author       Timeless
 // @match        https://go.xero.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @connect      ix.timelesscommercial.com.au
 // @connect      raw.githubusercontent.com
 // @connect      cdn.jsdelivr.net
-// @downloadURL  https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.user.js
-// @updateURL    https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.user.js
+// @downloadURL  https://ix.timelesscommercial.com.au/apps/xero-bar.user.js
+// @updateURL    https://ix.timelesscommercial.com.au/apps/xero-bar.user.js
 // @run-at       document-idle
 // ==/UserScript==
 //
@@ -34,8 +35,8 @@
   window.__xbarLoaderRan = true;
 
   var CODE_URLS = [
-    'https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.code.js',
-    'https://cdn.jsdelivr.net/gh/Timeless15000/xero-apps@main/xero-bar.code.js'   // fallback if GitHub raw is down
+    'https://ix.timelesscommercial.com.au/apps/xero-bar.code.js',
+    'https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero-bar.code.js'   // fallback: the old GitHub copy (until it is archived)
   ];
   var CACHE_KEY = 'xbar_code_cache';
 

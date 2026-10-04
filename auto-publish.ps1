@@ -4,8 +4,15 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
 $here = $PSScriptRoot
-$parent = Split-Path $here -Parent
-$repos = @($here, (Join-Path $parent 'Outlook'), (Join-Path $parent 'xero-apps')) | Select-Object -Unique
+# GitHub 폴더 찾기 (이 파일은 GitHub\ix\xero-apps 에 있다 — 2026-10-04 ix 저장소로 합침)
+$gh = $here
+while ($gh -and ((Split-Path $gh -Leaf) -ne 'GitHub')) { $gh = Split-Path $gh -Parent }
+if (-not $gh) { $gh = Split-Path (Split-Path $here -Parent) -Parent }
+# 올릴 곳: ix 저장소는 xero-apps 폴더만 (Accounts 등 다른 앱 폴더는 절대 건드리지 않는다), Outlook 저장소는 전체
+$targets = @(
+    @{ repo = (Join-Path $gh 'ix'); scope = 'xero-apps' },
+    @{ repo = (Join-Path $gh 'Outlook'); scope = '.' }
+)
 
 $log = Join-Path $here 'auto-publish.log'
 function Say($m) {
@@ -38,9 +45,11 @@ if (-not $git) {
 }
 if ((-not $git) -or (-not (Test-Path $git))) { Say 'git 을 찾지 못했습니다 (GitHub Desktop 설치 확인)'; exit }
 
-foreach ($r in $repos) {
+foreach ($t in $targets) {
+    $r = $t.repo
+    $scope = $t.scope
     if (-not (Test-Path (Join-Path $r '.git'))) { continue }
-    $name = Split-Path $r -Leaf
+    $name = (Split-Path $r -Leaf) + $(if ($scope -ne '.') { '/' + $scope } else { '' })
     Push-Location $r
 
     # OneDrive 가 .git 을 잠그지 않도록 자동 정리 기능을 끈다 (Publish bat 과 같은 설정)
@@ -51,7 +60,7 @@ foreach ($r in $repos) {
     $gclog = Join-Path $r '.git\gc.log'
     if (Test-Path $gclog) { Remove-Item $gclog -Force -ErrorAction SilentlyContinue }
 
-    $st = & $git status --porcelain 2>$null
+    $st = & $git status --porcelain -- $scope 2>$null
     if (-not $st) { Pop-Location; continue }
 
     # 방금 수정된 파일이 있으면 이번엔 건너뛴다 (저장 중간에 올리지 않으려고)
@@ -68,9 +77,10 @@ foreach ($r in $repos) {
     if ($tooNew) { Say ($name + ' : 방금 저장된 파일이 있어 다음 차례로 미룸'); Pop-Location; continue }
 
     $n = ($st | Measure-Object).Count
-    & $git add -A 2>$null | Out-Null
-    & $git commit -m ('auto publish ' + (Get-Date -Format 'yyyy-MM-dd HH:mm')) 2>$null | Out-Null
-    & $git pull --no-edit 2>$null | Out-Null
+    & $git add -A -- $scope 2>$null | Out-Null
+    & $git commit -m ('auto publish ' + (Get-Date -Format 'yyyy-MM-dd HH:mm')) -- $scope 2>$null | Out-Null
+    # 다른 폴더에서 작업 중인(아직 안 올린) 변경이 있어도 깨지지 않게 잠시 치워 두고 받는다
+    & $git pull --rebase --autostash 2>$null | Out-Null
     $out = & $git push 2>&1
     $txt = ($out | Out-String).Trim()
     if ($LASTEXITCODE -eq 0) {

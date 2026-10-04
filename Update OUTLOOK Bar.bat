@@ -7,8 +7,8 @@ rem  folder is missing but the program is already installed, keep going
 rem  (the bar updates program files from GitHub itself); when nothing is
 rem  found, print a diagnosis screen the staff can send to Brian.
 
-set "URL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/OUTLOOK_bar.ahk"
-set "ICOURL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/outlook.ico"
+set "URL=https://ix.timelesscommercial.com.au/apps/OUTLOOK_bar.ahk"
+set "ICOURL=https://ix.timelesscommercial.com.au/apps/outlook.ico"
 set "NODEDIR=%LOCALAPPDATA%\node-lts"
 
 rem  Find the Outlook folder (the one that contains src\index.js)

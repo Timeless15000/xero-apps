@@ -5,8 +5,8 @@ title XERO Bar - install / update
 
 set "DESTDIR=%USERPROFILE%\XERO Bar"
 set "DEST=%DESTDIR%\XERO_bar.ahk"
-set "URL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/XERO_bar.ahk"
-set "ICOURL=https://raw.githubusercontent.com/Timeless15000/xero-apps/main/xero.ico"
+set "URL=https://ix.timelesscommercial.com.au/apps/XERO_bar.ahk"
+set "ICOURL=https://ix.timelesscommercial.com.au/apps/xero.ico"
 
 echo.
 echo   Installing / updating the XERO Bar...
